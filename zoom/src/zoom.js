@@ -1,4 +1,4 @@
-const nodeCnt = 50;
+const nodeCnt = 350;
 const timeStart = 2012, timeEnd = 2019;
 //color
 const backgroundColor = 0x707B7C;
@@ -28,14 +28,12 @@ for(let t=timeStart;t<=timeEnd;t++) {
 
 //init app
 const container = new PIXI.Container();
-const linechartsContainer = new PIXI.Container();
 let canvas = document.getElementById("mycanvas");
 let app = new PIXI.Application({width:stageWidth, height:stageHeight, antialias:true, view:canvas});
 app.renderer.backgroundColor = backgroundColor;
 //document.body.appendChild(app.view);
 app.stage.interactive = true;
 app.stage.addChild(container);
-app.stage.addChild(linechartsContainer);
 //generate background texture
 
 const rgba = new Float32Array(tableWidth*tableHeight*4);
