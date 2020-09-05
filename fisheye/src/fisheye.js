@@ -1,4 +1,5 @@
-//const nodeCnt = 54;
+const nodeCnt = 15;
+
 //const timeStart = 2012, timeEnd = 2019;
 //color
 const backgroundColor = 0x707B7C;
@@ -7,6 +8,7 @@ const nodeColor = 0x1ABC9C;
 const selectColor = 0xE74C3C;
 const lineColorDark = 0x2E4053;
 const lineColorLight = 0xF0EDE4;
+const resolution = 1;
 //parameters
 const stageWidth_pix = 800, stageHeight_pix = 800;
 const tableWidth = nodeCnt, tableHeight = nodeCnt;
@@ -16,6 +18,15 @@ const linechartsTextureScale = 2;
 const maxScale = 1.5;
 const chartRatio=0.8;
 const nodeRadius =0.2;
+//random data
+const data= {};
+for(let t=timeStart;t<=timeEnd;t++) {
+    let matrix = [];
+    for(let i=0;i<tableHeight;i++) {
+        matrix.push(d3.range(tableWidth).map(Math.random));
+    }
+    data[t] = matrix;
+}
 let focalWidth = 1, focalHeight = 1;
 let distortWidth=15,distortHeight=15;
 let fisheyeScale = 9;
@@ -36,11 +47,11 @@ focalHeight = Number(focalRangeSlider.value);
 distortRangeText.innerHTML = distortRangeSlider.value;
 distortWidth = Number(distortRangeSlider.value);
 distortHeight = Number(distortRangeSlider.value);
-let geometry = updateGeometry();
+let geometry = updateGeometry(h=Math.floor(distortHeight/2),w=Math.floor(distortWidth/2));
 focalScaleSlider.oninput = function() {
     focalScaleText.innerHTML = this.value;
     fisheyeScale = Number(this.value);
-    geometry = updateGeometry();
+    geometry = updateGeometry(h=linechartsSprite.h,w=linechartsSprite.w);
     quad.geometry = geometry;
     updateLinechartsSprite(h=linechartsSprite.h,w=linechartsSprite.w);
 };
@@ -49,7 +60,7 @@ focalRangeSlider.oninput = function() {
     focalWidth = Number(this.value);
     if(focalWidth%2==0) focalWidth+=1;
     focalHeight = focalWidth;
-    geometry = updateGeometry();
+    geometry = updateGeometry(h=linechartsSprite.h,w=linechartsSprite.w);
     quad.geometry = geometry;
     updateLinechartsSprite(h=linechartsSprite.h,w=linechartsSprite.w);
 }
@@ -60,21 +71,13 @@ distortRangeSlider.oninput = function() {
     distortHeight = distortWidth;
     distortWidth_pix=distortWidth*stepWidth_pix;
     distortHeight_pix=distortHeight*stepHeight_pix;
-    geometry = updateGeometry();
+    geometry = updateGeometry(h=linechartsSprite.h,w=linechartsSprite.w);
     quad.geometry = geometry;
     updateLinechartsSprite(h=linechartsSprite.h,w=linechartsSprite.w);
 }
-//random data
-//const data= {};
-//for(let t=timeStart;t<=timeEnd;t++) {
-//    let matrix = [];
-//    for(let i=0;i<tableHeight;i++) {
-//        matrix.push(d3.range(tableWidth).map(Math.random));
-//    }
-//    data[t] = matrix;
-//}
+
 function getValue(timeIdx,h,w) {
-    //return data[timeIdx][h][w];
+    return data[timeIdx][h][w];
     const value =data[timeIdx][h][destinations[w]];
     if(value.length==0) {
         return 0;
@@ -97,21 +100,40 @@ function rgbStrToHex(s) {
 function createBackgroundTexture(h1,w1,h2,w2) {
     const width = w2-w1+1;
     const height=h2-h1+1;
-    const rgba = new Float32Array(width*height*4);
+    const rgba = new Float32Array(width*height*4*resolution*resolution);
     for(let i=0;i<height;i++) {
         for(let j=0;j<width;j++) {
             let value = getValue(timeEnd,i+h1,j+w1);
             let colorStr = d3.interpolateYlGn(value);
             let color = rgbStrToHex(colorStr);
-            let idx = i*width+j;
-            rgba[idx*4] = (color>>16)/256;
-            rgba[idx*4+1] = ((color>>8)&((1<<8)-1))/256;
-            rgba[idx*4+2] = (color&((1<<8)-1))/256;
-            rgba[idx*4+3] = 1;
+            for(let p=0;p<resolution;p++) {
+                for(let q=0;q<resolution;q++) {
+                    let idx = (i*resolution+p)*resolution*width+(j*resolution+q);
+                    rgba[idx*4] = (color>>16)/256;
+                    rgba[idx*4+1] = ((color>>8)&((1<<8)-1))/256;
+                    rgba[idx*4+2] = (color&((1<<8)-1))/256;
+                    rgba[idx*4+3] = 1;     
+                }
+            }
         }
-    }   
-    const texture = PIXI.Texture.fromBuffer(rgba,width,height);
+    }
+    const texture = PIXI.Texture.fromBuffer(rgba,width*resolution,height*resolution);
     return texture;
+    //const rgba = new Float32Array(width*height*4);
+    //for(let i=0;i<height;i++) {
+    //    for(let j=0;j<width;j++) {
+    //        let value = getValue(timeEnd,i+h1,j+w1);
+    //        let colorStr = d3.interpolateYlGn(value);
+    //        let color = rgbStrToHex(colorStr);
+    //        let idx = i*width+j;
+    //        rgba[idx*4] = (color>>16)/256;
+    //        rgba[idx*4+1] = ((color>>8)&((1<<8)-1))/256;
+    //        rgba[idx*4+2] = (color&((1<<8)-1))/256;
+    //        rgba[idx*4+3] = 1;
+    //    }
+    //}   
+    //const texture = PIXI.Texture.fromBuffer(rgba,width,height);
+    //return texture;
 }
 
 const backgroundTexture = createBackgroundTexture(0,0,tableHeight-1,tableWidth-1);
@@ -203,8 +225,10 @@ app.stage.interactive = true;
 app.stage.addChild(container);
 
 const backgroundSprite = new PIXI.Sprite(backgroundTexture);
-backgroundSprite.scale.x = stepWidth_pix;
-backgroundSprite.scale.y = stepHeight_pix;
+backgroundSprite.scale.x = stepWidth_pix/resolution;
+backgroundSprite.scale.y = stepHeight_pix/resolution;
+//backgroundSprite.scale.x = stepWidth_pix;
+//backgroundSprite.scale.y = stepHeight_pix;
 backgroundSprite.x=0;
 backgroundSprite.y=0;
 container.addChild(backgroundSprite);
@@ -212,8 +236,8 @@ container.addChild(backgroundSprite);
 var linechartsSprite = new PIXI.Sprite();
 linechartsSprite.scale.x=1/linechartsTextureScale;
 linechartsSprite.scale.y=1/linechartsTextureScale;
-linechartsSprite.h = -1;
-linechartsSprite.w = -1;
+linechartsSprite.h = Math.floor(distortHeight/2);
+linechartsSprite.w = Math.floor(distortWidth/2);
 
 const vertexSrc = `
 
@@ -255,31 +279,43 @@ const shader = PIXI.Shader.from(vertexSrc, fragmentSrc, uniforms);
 var quad = new PIXI.Mesh(geometry, shader);
 quad.position.set(0,0);
 quad.interactive = true;
-quad.mousemove = function(e) {
-    let w = Math.floor(e.data.global.x/stepWidth_pix);
-    let h = Math.floor(e.data.global.y/stepHeight_pix);
-    if(w<0||h<0||w>=tableWidth||h>tableHeight) {
+quad.mousemove = function(e) {}
+canvas.addEventListener('mousemove',function(evt) {
+    const rect = canvas.getBoundingClientRect();
+    let x_canvas = evt.clientX-rect.left;
+    let y_canvas = evt.clientY-rect.top;
+    let w = Math.floor(x_canvas/stepWidth_pix);
+    let h = Math.floor(y_canvas/stepHeight_pix);
+    if(w<0||h<0||w>=tableWidth||h>=tableHeight) {
         return;
     }
-    updateLinechartsSprite(h,w);    
-}
+    let frameWidth = (distortWidth-focalWidth)/2;
+    let frameHeight = (distortHeight-focalHeight)/2;
+    let startW = w-Math.floor(distortWidth/2);
+    let startH = h-Math.floor(distortHeight/2);
+    
+    if (w<=frameWidth ||h<=frameHeight || w>=tableWidth-frameWidth-1||h>=tableHeight-frameHeight-1) {
+        geometry = updateGeometry(h=h,w=w);
+        quad.geometry = geometry;
+    }
+    updateLinechartsSprite(h,w);
+});
 container.addChild(quad);
 container.addChild(linechartsSprite);
 function updateLinechartsSprite(h,w) {
-    const focalOrigin = [(distortWidth-focalWidth*fisheyeScale)/2*stepWidth_pix,(distortHeight-focalWidth*fisheyeScale)/2*stepHeight_pix];
     let frameWidth = (distortWidth-focalWidth)/2;
     let frameHeight = (distortHeight-focalHeight)/2;
-    //w = Math.max(0,Math.min(w,tableWidth-1));
-    //h = Math.max(0,Math.min(h,tableHeight-1));
     w = Math.max(frameWidth,Math.min(w,tableWidth-frameWidth-1));
     h = Math.max(frameHeight,Math.min(h,tableHeight-frameHeight-1));
+    const focalOrigin = [(distortWidth-focalWidth*fisheyeScale)/2*stepWidth_pix,(distortHeight-focalWidth*fisheyeScale)/2*stepHeight_pix];
+    
     let startW = w-Math.floor(distortWidth/2);
     let startH = h-Math.floor(distortHeight/2);
+    console.log(`h = ${h}  w = ${w}`);
     let bgTexture = createBackgroundTexture(startH,startW,startH+distortHeight-1,startW+distortWidth-1);
     quad.shader.uniforms.uSampler2=bgTexture;
     quad.x=startW*stepWidth_pix;
     quad.y=startH*stepHeight_pix;
-    console.log(`focus h=${h},w=${w}`);
     let innerW = w-Math.floor(focalWidth/2);
     let innerH = h-Math.floor(focalHeight/2);
     let linechartsTexture = createLineChartsTexture(stepHeight_pix*fisheyeScale,stepWidth_pix*fisheyeScale,innerH,innerW,innerH+focalHeight-1,innerW+focalWidth-1);
@@ -289,8 +325,11 @@ function updateLinechartsSprite(h,w) {
     linechartsSprite.h=h;
     linechartsSprite.w = w;
 }
-function updateGeometry() {
-    const focalOrigin_uv =[(distortWidth-focalWidth)/2/distortWidth,(distortHeight-focalHeight)/2/distortHeight]; 
+function updateGeometry(h,w) {
+    const frameWidth = (distortWidth-focalWidth)/2;
+    const frameHeight = (distortHeight-focalHeight)/2;
+    
+    const focalOrigin_uv =[frameWidth/distortWidth,frameHeight/distortHeight]; 
     const focalWidth_uv=focalWidth/distortWidth,focalHeight_uv=focalHeight/distortHeight;
     const innerRec_uv = [focalOrigin_uv[0],focalOrigin_uv[1],
         focalOrigin_uv[0]+focalWidth_uv,focalOrigin_uv[1],
@@ -303,10 +342,7 @@ function updateGeometry() {
         focalOrigin[0]+focalWidth*fisheyeScale*stepWidth_pix,focalOrigin[1]+focalHeight*fisheyeScale*stepHeight_pix,
         focalOrigin[0],focalOrigin[1]+focalHeight*fisheyeScale*stepHeight_pix
     ];
-
-    const geometry = new PIXI.Geometry()
-        .addAttribute('aVertexPosition', 
-            [0,0,
+    const pos_list= [0,0,
                 distortWidth_pix,0,
                 distortWidth_pix,distortHeight_pix,
                 0,distortHeight_pix,
@@ -322,10 +358,8 @@ function updateGeometry() {
                 innerRec[4],distortHeight_pix/2,
                 distortWidth_pix/2,innerRec[5],
                 focalOrigin[0],distortHeight_pix/2
-            ],
-            2)
-        .addAttribute('aUvs', 
-            [0, 0,
+            ];
+    const pos_list_uv = [0, 0,
                 1, 0,
                 1, 1,
                 0, 1,
@@ -341,10 +375,62 @@ function updateGeometry() {
                 innerRec_uv[4],0.5,
                 0.5,innerRec_uv[5],
                 focalOrigin_uv[0],0.5
-            ],
+            ];
+    const index_list = [4,0,8,4,8,12,5,12,8,5,8,1,5,1,9,5,13,9,6,13,9,6,9,2,6,2,10,6,10,14,7,14,10,7,10,3,7,3,11,7,11,15,4,15,11,4,11,0,4,5,6,4,6,7];
+    let h_num=0,w_num=0;
+    let translateH=0,translateW=0;
+    let translateH_uv = 0,translateW_uv = 0;
+    if(h<frameHeight) {
+        h_num = frameHeight-h;
+        translateH = -h_num*stepHeight_pix;
+        translateH_uv = -h_num/distortHeight;
+    } else if(h>=tableHeight-frameHeight) {
+        h_num = h-(tableHeight-frameHeight)+1;
+        translateH = h_num*stepHeight_pix;
+        translateH_uv = h_num/distortHeight;
+    }
+    if(w<frameWidth) {
+        w_num = frameWidth-w;
+        translateW = -w_num*stepWidth_pix;
+        translateW_uv = -w_num/distortWidth;
+    }else if(w>=tableWidth-frameWidth) {
+        w_num = w-(tableWidth-frameWidth)+1;
+        translateW = w_num*stepWidth_pix;
+        translateW_uv = w_num/distortWidth;
+    }
+    //console.log(`h = ${h}, w = ${w}`);
+    //console.log(`h_num = ${h_num}, w_num = ${w_num}`);
+    for(let i=4*2;i<8*2;i+=2) {
+        pos_list[i+1] += translateH;
+        pos_list[i] += translateW;
+        pos_list[i+1] = Math.min(Math.max(0,pos_list[i+1]),distortHeight_pix);
+        pos_list[i] = Math.min(Math.max(0,pos_list[i]),distortWidth_pix);
+        //console.log(`(w,h) = ${pos_list[i]},${pos_list[i+1]}`);
+
+        pos_list_uv[i+1] += translateH_uv;
+        pos_list_uv[i] += translateW_uv;
+        pos_list_uv[i+1] = Math.min(Math.max(0,pos_list_uv[i+1]),1);
+        pos_list_uv[i] = Math.min(Math.max(0,pos_list_uv[i]),1);
+    }
+    for(let i=12*2;i<16*2;i+=2) {
+        pos_list[i+1] += translateH;
+        pos_list[i] += translateW;
+        pos_list[i+1] = Math.min(Math.max(0,pos_list[i+1]),distortHeight_pix);
+        pos_list[i] = Math.min(Math.max(0,pos_list[i]),distortWidth_pix);
+        
+        pos_list_uv[i+1] += translateH_uv;
+        pos_list_uv[i] += translateW_uv;
+        pos_list_uv[i+1] = Math.min(Math.max(0,pos_list_uv[i+1]),1);
+        pos_list_uv[i] = Math.min(Math.max(0,pos_list_uv[i]),1);
+    }
+    const geometry = new PIXI.Geometry()
+        .addAttribute('aVertexPosition', 
+            pos_list,
             2)
-        .addIndex([4,0,8,4,8,12,5,12,8,5,8,1,5,1,9,5,13,9,6,13,9,6,9,2,6,2,10,6,10,14,7,14,10,7,10,3,7,3,11,7,11,15,4,15,11,4,11,0,4,5,6,4,6,7]);
-    //quad.geometry = geometry;
+        .addAttribute('aUvs', 
+            pos_list_uv,
+            2)
+        .addIndex(index_list);
     return geometry;
 }
 

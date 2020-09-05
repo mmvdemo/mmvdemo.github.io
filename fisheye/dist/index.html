@@ -48,40 +48,40 @@
     <body>
         <div class="slidecontainer">
             <p>focal scale: <span id="focal_scale_text"></span></p> 
-            <input type="range" min="1" max="10" value="3" class="slider" id="focal_scale">
+            <input type="range" min="1" max="90" value="3" class="slider" id="focal_scale">
             <p>focal range: <span id="focal_range_text"></span></p> 
             <input type="range" min="1" max="11" value="1" class="slider" id="focal_range">
             <p>distortion range: <span id="distort_range_text"></span></p> 
-            <input type="range" min="1" max="51" value="15" class="slider" id="distort_range">
+            <input type="range" min="1" max="151" value="15" class="slider" id="distort_range">
         </div>
         <canvas id="mycanvas" />
         <script type="text/javascript">
         //load data
         const timeStart = Number("<%= timeStart%>");
         const timeEnd= Number("<%= timeEnd%>");
-        let json = <%- data%>;
-        const data = {};
-        for(let t=timeStart;t<=timeEnd;t++) {
-            data[`${t}`] = JSON.parse(json[`${t}`]);
-        }
-        const destinations = [];
-        for(let i=0;i<data[timeEnd].length;i++) {
-            destinations.push(data[timeEnd][i]['Destinations']);
-        }
-        const nodeCnt = destinations.length;
-        //normalize data
-        let maxValue = 0;
-        for(let i=0;i<data[timeEnd].length;i++) {
-            for(let j=0;j<destinations.length;j++) {
-                let value = data[timeEnd][i][destinations[j]];
-                if(value.length>0) {
-                    if(maxValue<Number(value)) {
-                        maxValue = Number(value);
-                    }
-                }
-            }
-        }
-        maxValue /=8;
+        //let json = <%- data%>;
+        //const data = {};
+        //for(let t=timeStart;t<=timeEnd;t++) {
+        //    data[`${t}`] = JSON.parse(json[`${t}`]);
+        //}
+        //const destinations = [];
+        //for(let i=0;i<data[timeEnd].length;i++) {
+        //    destinations.push(data[timeEnd][i]['Destinations']);
+        //}
+        //const nodeCnt = destinations.length;
+        ////normalize data
+        //let maxValue = 0;
+        //for(let i=0;i<data[timeEnd].length;i++) {
+        //    for(let j=0;j<destinations.length;j++) {
+        //        let value = data[timeEnd][i][destinations[j]];
+        //        if(value.length>0) {
+        //            if(maxValue<Number(value)) {
+        //                maxValue = Number(value);
+        //            }
+        //        }
+        //    }
+        //}
+        //maxValue /=8;
         
         </script>
         <script src="fisheye/src/fisheye.js"></script>
