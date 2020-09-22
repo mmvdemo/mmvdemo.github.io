@@ -2,14 +2,7 @@ import * as PARA from "./parameters.js";
 import {createGridGeometry,createBackgroundTexture,createLineChartsTexture} from "./utils.js";
 let d=4;
 let focusPos = {'w':-1,'h':-1};
-//init app
-const container = new PIXI.Container();
-container.interactive = true;
-let canvas = document.getElementById("mycanvas");
-let app = new PIXI.Application({width:PARA.stage_pix.w, height:PARA.stage_pix.h, antialias:true, view:canvas});
-app.renderer.backgroundColor = PARA.backgroundColor;
-app.stage.interactive = true;
-app.stage.addChild(container);
+
 
 const vertexSrc = `
 
@@ -49,18 +42,7 @@ const shader = PIXI.Shader.from(vertexSrc, fragmentSrc, uniforms);
 const geometry = createGridGeometry(PARA.table.h,PARA.table.w);
 var quad = new PIXI.Mesh(geometry,shader);
 quad.position.set(0,0);
-container.addChild(quad);
-canvas.addEventListener('mousemove',function(evt) {
-    const rect = canvas.getBoundingClientRect();
-    const mouseOnCanvas = {'h':evt.clientY-rect.top-container.y,'w':evt.clientX-rect.left-container.x};
-    let w = Math.floor(mouseOnCanvas.w/PARA.step_pix.w);
-    let h = Math.floor(mouseOnCanvas.h/PARA.step_pix.h);
-    console.log(`h=${h},w=${w}`);
-    if(w<0||h<0||w>=PARA.table.w+1||h>=PARA.table.h+1) {
-        return;
-    }
-    updateQuad(h,w);
-});
+
 
 function bufferIndex(h,w) {return h*(PARA.table.w+1)+w;}
 function g1(Dmax,Dnorm) {
@@ -102,4 +84,25 @@ function updateQuad(h,w) {
     focusPos.w = w;
     buffer.update();
 };
-
+//init app
+export function loadCartesianLens() {
+    const container = new PIXI.Container();
+    container.interactive = true;
+    let canvas = document.getElementById("mycanvas");
+    let app = new PIXI.Application({width:PARA.stage_pix.w, height:PARA.stage_pix.h, antialias:true, view:canvas});
+    app.renderer.backgroundColor = PARA.backgroundColor;
+    app.stage.interactive = true;
+    app.stage.addChild(container);
+    container.addChild(quad);
+    canvas.addEventListener('mousemove',function(evt) {
+        const rect = canvas.getBoundingClientRect();
+        const mouseOnCanvas = {'h':evt.clientY-rect.top-container.y,'w':evt.clientX-rect.left-container.x};
+        let w = Math.floor(mouseOnCanvas.w/PARA.step_pix.w);
+        let h = Math.floor(mouseOnCanvas.h/PARA.step_pix.h);
+        console.log(`h=${h},w=${w}`);
+        if(w<0||h<0||w>=PARA.table.w+1||h>=PARA.table.h+1) {
+            return;
+        }
+        updateQuad(h,w);
+    });
+}

@@ -52,15 +52,7 @@ let distort_pix = {'h':distort.h*PARA.step_pix.h,'w':distort.w*PARA.step_pix.w};
 //    updateLinechartsSprite(h=linechartsSprite.h,w=linechartsSprite.w);
 //}
 
-//init app
-const container = new PIXI.Container();
-container.x = PARA.EP/2;
-container.y=PARA.EP/2;
-let canvas = document.getElementById("mycanvas");
-let app = new PIXI.Application({width:PARA.stage_pix.w+PARA.EP, height:PARA.stage_pix.h+PARA.EP, antialias:true, view:canvas});
-app.renderer.backgroundColor = PARA.backgroundColor;
-app.stage.interactive = true;
-app.stage.addChild(container);
+
 // generate background texture
 const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
 // create background sprite
@@ -69,7 +61,6 @@ backgroundSprite.scale.x = PARA.step_pix.w;
 backgroundSprite.scale.y = PARA.step_pix.h;
 backgroundSprite.x=0;
 backgroundSprite.y=0;
-container.addChild(backgroundSprite);
 
 //line chart sprite
 var linechartsSprite = new PIXI.Sprite();
@@ -150,18 +141,7 @@ const geometry = new PIXI.Geometry()
 var quad = new PIXI.Mesh(geometry, shader);
 quad.position.set(0,0);
 quad.interactive = true;
-container.addChild(quad);
-canvas.addEventListener('mousemove',function(evt) {
-    const rect = canvas.getBoundingClientRect();
-    const mouseOnCanvas = {'h':evt.clientY-rect.top-container.y,'w':evt.clientX-rect.left-container.x};
-    let w = Math.floor(mouseOnCanvas.w/PARA.step_pix.w);
-    let h = Math.floor(mouseOnCanvas.h/PARA.step_pix.h);
-    if(w<0||h<0||w>=PARA.table.w+1||h>=PARA.table.h+1) {
-        return;
-    }
-    updateQuad(h,w);
-    updateLinechartsSprite(h,w);
-});
+
 function bufferIndex(h,w) {return h*(distort.w+1)+w;};
 function h1(x) {return 1-(d+1)*x/(d*x+1);};
 function updateQuad(h,w) {
@@ -228,4 +208,29 @@ function updateLinechartsSprite(h,w) {
     linechartsSprite.h=h;
     linechartsSprite.w = w;
 };
-//container.addChild(linechartsSprite);
+export function loadFisheyeLens() {
+    //init app
+    const container = new PIXI.Container();
+    container.x = PARA.EP/2;
+    container.y=PARA.EP/2;
+    let canvas = document.getElementById("mycanvas");
+    let app = new PIXI.Application({width:PARA.stage_pix.w+PARA.EP, height:PARA.stage_pix.h+PARA.EP, antialias:true, view:canvas});
+    app.renderer.backgroundColor = PARA.backgroundColor;
+    app.stage.interactive = true;
+    app.stage.addChild(container);   
+
+    container.addChild(backgroundSprite);
+    container.addChild(quad);
+    canvas.addEventListener('mousemove',function(evt) {
+        const rect = canvas.getBoundingClientRect();
+        const mouseOnCanvas = {'h':evt.clientY-rect.top-container.y,'w':evt.clientX-rect.left-container.x};
+        let w = Math.floor(mouseOnCanvas.w/PARA.step_pix.w);
+        let h = Math.floor(mouseOnCanvas.h/PARA.step_pix.h);
+        if(w<0||h<0||w>=PARA.table.w+1||h>=PARA.table.h+1) {
+            return;
+        }
+        updateQuad(h,w);
+        updateLinechartsSprite(h,w);
+    });
+    //container.addChild(linechartsSprite);
+}

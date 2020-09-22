@@ -23,23 +23,20 @@ if (DATA == "RANDOM") {
     }
 }
 
-//app.use(express.static(path.join(__dirname,"/zoom")));
-//app.get('/',function(req,res){
-//    res.sendFile(path.join(__dirname,'zoom','dist','index.html'));
-//})
-
-//app.use(express.static(path.join(__dirname,"/lens")));
-//app.get('/',function(req,res){
-//    res.sendFile(path.join(__dirname,'lens','dist','index.html'));
-//})
-
-//app.use(express.static(__dirname));
-//app.get('/',function(req,res){
-//    res.render(__dirname+"/fisheye/dist/index.html", {timeStart:timeStart,timeEnd:timeEnd,data:JSON.stringify(json)});
-//})
 app.use(express.static(__dirname));
-app.get('/',function(req,res){
-    res.render(path.join(__dirname,'dist','index.html'), {dataType:DATA,timeStart:timeStart,timeEnd:timeEnd,nodeCnt:nodeCnt,data:JSON.stringify(json)});
+app.get('/cartesianlens',function(req,res){
+    res.render(path.join(__dirname,'index.html'), {technique:"cartesianlens",dataType:DATA,timeStart:timeStart,timeEnd:timeEnd,nodeCnt:nodeCnt,data:JSON.stringify(json)});
 })
-
+app.get('/tablelens',function(req,res){
+    res.render(path.join(__dirname,'index.html'), {technique:"tablelens",dataType:DATA,timeStart:timeStart,timeEnd:timeEnd,nodeCnt:nodeCnt,data:JSON.stringify(json)});
+})
+app.get('/fisheyelens',function(req,res){
+    res.render(path.join(__dirname,'index.html'), {technique:"fisheyelens",dataType:DATA,timeStart:timeStart,timeEnd:timeEnd,nodeCnt:nodeCnt,data:JSON.stringify(json)});
+})
+app.get('/zoom',function(req,res){
+    res.render(path.join(__dirname,'index.html'), {technique:"zoom",dataType:DATA,timeStart:timeStart,timeEnd:timeEnd,nodeCnt:nodeCnt,data:JSON.stringify(json)});
+})
+app.get('/inset',function(req,res){
+    res.render(path.join(__dirname,'index.html'), {technique:"inset",dataType:DATA,timeStart:timeStart,timeEnd:timeEnd,nodeCnt:nodeCnt,data:JSON.stringify(json)});
+})
 app.listen(3000);

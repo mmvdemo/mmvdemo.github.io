@@ -13,6 +13,7 @@
         <canvas id="mycanvas" />
         <script type="text/javascript">
         //load data
+        const technique = "<%= technique%>";
         let getValue,data={},destinations=[],nodeCnt;
         const timeStart = Number("<%= timeStart%>");
         const timeEnd= Number("<%= timeEnd%>");
@@ -64,6 +65,21 @@
         </script>
         <script type="module" src="./src/parameters.js"></script>
         <script type="module" src="./src/utils.js"></script>
-        <script type="module" src="./src/cartesianLens.js"></script>
+        <script type="module"> 
+            import {loadCartesianLens} from "./src/cartesianLens.js";
+            import {loadTableLens} from "./src/tableLens.js";
+            import {loadFisheyeLens} from "./src/fisheyeLens.js";
+            import {loadZoom} from "./src/zoom.js";
+            if(technique == "cartesianlens") {
+                loadCartesianLens();
+            } else if(technique == "tablelens") {
+                loadTableLens();
+            } else if(technique == "fisheyelens") {
+                loadFisheyeLens();
+            } else if(technique == "zoom") {
+                loadZoom();
+            } else if(technique == "inset") {
+            }
+        </script>
     </body>
 </html>
