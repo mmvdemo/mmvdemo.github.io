@@ -1,6 +1,6 @@
 import * as PARA from "./parameters.js";
 import {createGridGeometry,createBackgroundTexture,createLineChartsTexture} from "./utils.js";
-let d=4;
+let d=10;
 let focusPos = {'w':-1,'h':-1};
 let quad;
 const vertexSrc = `

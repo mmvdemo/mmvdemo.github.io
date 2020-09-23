@@ -2,9 +2,9 @@ import * as PARA from "./parameters.js";
 import {createBackgroundTexture,createLineChartsTexture} from "./utils.js";
 
 let focal = {'h':1,'w':1};
-let distort = {'h':15,'w':15};
+let distort = {'h':25,'w':25};
 let fisheyeScale = 9;
-let d = 0.5;
+let d = 0.001;
 let distort_pix = {'h':distort.h*PARA.step_pix.h,'w':distort.w*PARA.step_pix.w};
 let quad,backgroundSprite,linechartsSprite;
 //const focalScaleSlider = document.getElementById("focal_scale");

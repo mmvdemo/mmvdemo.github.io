@@ -1,7 +1,7 @@
 import * as PARA from "./parameters.js";
 import {createGridGeometry,createBackgroundTexture,createLineChartsTexture} from "./utils.js";
 // for table lens
-let focalScale = 4;
+let focalScale = 10;
 let contextRadius=0;
 let quad;
 //DOI
