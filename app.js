@@ -24,6 +24,9 @@ if (DATA == "RANDOM") {
 }
 
 app.use(express.static(__dirname));
+app.get('/',function(req,res){
+    res.render(path.join(__dirname,'index.html'));
+})
 app.get('/cartesianlens',function(req,res){
     res.render(path.join(__dirname,'index.html'), {technique:"cartesianlens",dataType:DATA,timeStart:timeStart,timeEnd:timeEnd,nodeCnt:nodeCnt,data:JSON.stringify(json)});
 })

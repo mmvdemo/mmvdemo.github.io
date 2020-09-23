@@ -1,0 +1,24 @@
+{
+  "name": "matrix-visualization",
+  "version": "1.0.0",
+  "description": "+ change app.js to run zoom or lens",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wenyuX/matrix-visualization.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/wenyuX/matrix-visualization/issues"
+  },
+  "homepage": "https://github.com/wenyuX/matrix-visualization#readme",
+  "dependencies": {
+    "csvtojson": "^2.0.10",
+    "ejs": "^3.1.5",
+    "express": "^4.17.1"
+  }
+}

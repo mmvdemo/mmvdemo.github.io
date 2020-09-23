@@ -1,27 +1,10 @@
 import * as PARA from "./parameters.js";
 import {createBackgroundTexture,createLineChartsTexture} from "./utils.js";
 
-const focalThresh = 150/PARA.step_pix.w;
 const zoomRange = {'min':0.000001,'max':200};
 const maxScale = 1.5;
-let showChart = false;
-
-const container = new PIXI.Container();
-//generate background texture
-const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
-
-let backgroundSprite = new PIXI.Sprite(backgroundTexture);
-backgroundSprite.scale.x = PARA.step_pix.w;
-backgroundSprite.scale.y = PARA.step_pix.w;
-backgroundSprite.interactive = false;
-backgroundSprite.x = 0;
-backgroundSprite.y = 0;
-let linechartsSprite = new PIXI.Sprite();
-linechartsSprite.h1=PARA.table.h+1;
-linechartsSprite.w1=PARA.table.w+1;
-linechartsSprite.h2=-1;
-linechartsSprite.w2=-1;
-linechartsSprite.svgScale = 1;
+let focalThresh = 150/PARA.step_pix.w;
+let container,backgroundSprite,linechartsSprite;
 
 function zoom() {
     let x = d3.event.transform.x;
@@ -82,9 +65,31 @@ function zoom() {
         linechartsSprite.svgScale = scale;
     }
 }
+let app;
 export function loadZoom() {
-    let canvas = document.getElementById("mycanvas");
-    let app = new PIXI.Application({width:PARA.stage_pix.w, height:PARA.stage_pix.h, antialias:true, view:canvas});
+    let showChart = false;
+    focalThresh = 150/PARA.step_pix.w;
+    container = new PIXI.Container();
+    const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
+    
+    backgroundSprite = new PIXI.Sprite(backgroundTexture);
+    backgroundSprite.scale.x = PARA.step_pix.w;
+    backgroundSprite.scale.y = PARA.step_pix.w;
+    backgroundSprite.interactive = false;
+    backgroundSprite.x = 0;
+    backgroundSprite.y = 0;
+
+    linechartsSprite = new PIXI.Sprite();
+    linechartsSprite.h1=PARA.table.h+1;
+    linechartsSprite.w1=PARA.table.w+1;
+    linechartsSprite.h2=-1;
+    linechartsSprite.w2=-1;
+    linechartsSprite.svgScale = 1;
+    //let canvas = document.getElementById("mycanvas");
+    let canvas = document.createElement("canvas");
+    canvas.setAttribute("id","mycanvas");
+    document.body.appendChild(canvas);
+    app = new PIXI.Application({width:PARA.stage_pix.w, height:PARA.stage_pix.h, antialias:true, view:canvas});
     app.renderer.backgroundColor = PARA.backgroundColor;
     app.stage.interactive = true;
     app.stage.addChild(container); 
@@ -94,4 +99,7 @@ export function loadZoom() {
     
     let d3canvas = d3.select("#mycanvas");
     d3canvas.call(d3.zoom().scaleExtent([zoomRange.min, zoomRange.max]).on("zoom", zoom));
+}
+export function destroyZoom() {
+    app.destroy(true,true); 
 }

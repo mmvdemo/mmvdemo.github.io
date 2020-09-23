@@ -13,3 +13,9 @@ export const linechartsTextureScale = 1;
 export const chartRatio=0.8;
 export const nodeRadius =0.2;
 export const EP = 0;
+export function loadParameters() {
+    table.h=nodeCnt;
+    table.w=nodeCnt;
+    step_pix.h=stage_pix.h/table.h;
+    step_pix.w=stage_pix.w/table.w;
+}

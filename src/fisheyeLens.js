@@ -6,6 +6,7 @@ let distort = {'h':15,'w':15};
 let fisheyeScale = 9;
 let d = 0.5;
 let distort_pix = {'h':distort.h*PARA.step_pix.h,'w':distort.w*PARA.step_pix.w};
+let quad,backgroundSprite,linechartsSprite;
 //const focalScaleSlider = document.getElementById("focal_scale");
 //const focalScaleText = document.getElementById("focal_scale_text");
 //const focalRangeSlider = document.getElementById("focal_range");
@@ -52,23 +53,6 @@ let distort_pix = {'h':distort.h*PARA.step_pix.h,'w':distort.w*PARA.step_pix.w};
 //    updateLinechartsSprite(h=linechartsSprite.h,w=linechartsSprite.w);
 //}
 
-
-// generate background texture
-const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
-// create background sprite
-const backgroundSprite = new PIXI.Sprite(backgroundTexture);
-backgroundSprite.scale.x = PARA.step_pix.w;
-backgroundSprite.scale.y = PARA.step_pix.h;
-backgroundSprite.x=0;
-backgroundSprite.y=0;
-
-//line chart sprite
-var linechartsSprite = new PIXI.Sprite();
-linechartsSprite.scale.x=1/PARA.linechartsTextureScale;
-linechartsSprite.scale.y=1/PARA.linechartsTextureScale;
-linechartsSprite.h = Math.floor(distort.h/2);
-linechartsSprite.w = Math.floor(distort.w/2);
-
 const vertexSrc = `
 
     precision mediump float;
@@ -98,49 +82,6 @@ const fragmentSrc = `
     void main() {
         gl_FragColor = texture2D(uSampler2, vUvs);
                 }`;
-
-const uniforms = {
-    uSampler2: backgroundTexture,
-};
-
-const shader = PIXI.Shader.from(vertexSrc, fragmentSrc, uniforms);
-const pos_list = [],pos_list_uv = [],index_list=[];
-for(let h=0;h<=distort.h;h++) {
-    for(let w=0;w<=distort.w;w++) {
-        pos_list.push(w*PARA.step_pix.w);
-        pos_list.push(h*PARA.step_pix.h);
-        pos_list_uv.push(w/distort.w);
-        pos_list_uv.push(h/distort.h);
-    }
-}
-for(let h=0;h<distort.h;h++) {
-    for(let w=0;w<distort.w;w++) {
-        if((h<Math.floor(distort.h/2)&&w<Math.floor(distort.w/2))||(h>=Math.floor(distort.h/2)&&w>=Math.floor(distort.w/2))) {
-            index_list.push(h*(distort.w+1)+w);
-            index_list.push(h*(distort.w+1)+w+1);
-            index_list.push((h+1)*(distort.w+1)+w+1);
-            
-            index_list.push(h*(distort.w+1)+w);
-            index_list.push((h+1)*(distort.w+1)+w);
-            index_list.push((h+1)*(distort.w+1)+w+1);
-        } else {
-            index_list.push(h*(distort.w+1)+w);
-            index_list.push(h*(distort.w+1)+w+1);
-            index_list.push((h+1)*(distort.w+1)+w);
-            
-            index_list.push(h*(distort.w+1)+w+1);
-            index_list.push((h+1)*(distort.w+1)+w);
-            index_list.push((h+1)*(distort.w+1)+w+1);
-        }
-    }
-}
-const geometry = new PIXI.Geometry()
-                .addAttribute('aVertexPosition',pos_list,2)
-                .addAttribute('aUvs',pos_list_uv,2)
-                .addIndex(index_list);
-var quad = new PIXI.Mesh(geometry, shader);
-quad.position.set(0,0);
-quad.interactive = true;
 
 function bufferIndex(h,w) {return h*(distort.w+1)+w;};
 function h1(x) {return 1-(d+1)*x/(d*x+1);};
@@ -208,13 +149,74 @@ function updateLinechartsSprite(h,w) {
     linechartsSprite.h=h;
     linechartsSprite.w = w;
 };
+let app;
 export function loadFisheyeLens() {
-    //init app
+    distort_pix = {'h':distort.h*PARA.step_pix.h,'w':distort.w*PARA.step_pix.w};
+
+    // generate background texture
+    const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
+    // create background sprite
+    backgroundSprite = new PIXI.Sprite(backgroundTexture);
+    backgroundSprite.scale.x = PARA.step_pix.w;
+    backgroundSprite.scale.y = PARA.step_pix.h;
+    backgroundSprite.x=0;
+    backgroundSprite.y=0;
+    
+    //line chart sprite
+    linechartsSprite = new PIXI.Sprite();
+    linechartsSprite.scale.x=1/PARA.linechartsTextureScale;
+    linechartsSprite.scale.y=1/PARA.linechartsTextureScale;
+    linechartsSprite.h = Math.floor(distort.h/2);
+    linechartsSprite.w = Math.floor(distort.w/2);
+
+    const uniforms = {
+        uSampler2: backgroundTexture,
+    };
+    const shader = PIXI.Shader.from(vertexSrc, fragmentSrc, uniforms);
+    const pos_list = [],pos_list_uv = [],index_list=[];
+    for(let h=0;h<=distort.h;h++) {
+        for(let w=0;w<=distort.w;w++) {
+            pos_list.push(w*PARA.step_pix.w);
+            pos_list.push(h*PARA.step_pix.h);
+            pos_list_uv.push(w/distort.w);
+            pos_list_uv.push(h/distort.h);
+        }
+    }
+    for(let h=0;h<distort.h;h++) {
+        for(let w=0;w<distort.w;w++) {
+            if((h<Math.floor(distort.h/2)&&w<Math.floor(distort.w/2))||(h>=Math.floor(distort.h/2)&&w>=Math.floor(distort.w/2))) {
+                index_list.push(h*(distort.w+1)+w);
+                index_list.push(h*(distort.w+1)+w+1);
+                index_list.push((h+1)*(distort.w+1)+w+1);
+                
+                index_list.push(h*(distort.w+1)+w);
+                index_list.push((h+1)*(distort.w+1)+w);
+                index_list.push((h+1)*(distort.w+1)+w+1);
+            } else {
+                index_list.push(h*(distort.w+1)+w);
+                index_list.push(h*(distort.w+1)+w+1);
+                index_list.push((h+1)*(distort.w+1)+w);
+                
+                index_list.push(h*(distort.w+1)+w+1);
+                index_list.push((h+1)*(distort.w+1)+w);
+                index_list.push((h+1)*(distort.w+1)+w+1);
+            }
+        }
+    }
+    const geometry = new PIXI.Geometry()
+                    .addAttribute('aVertexPosition',pos_list,2)
+                    .addAttribute('aUvs',pos_list_uv,2)
+                    .addIndex(index_list);
+    quad = new PIXI.Mesh(geometry, shader);
+    quad.position.set(0,0);
+    quad.interactive = true;
     const container = new PIXI.Container();
     container.x = PARA.EP/2;
     container.y=PARA.EP/2;
-    let canvas = document.getElementById("mycanvas");
-    let app = new PIXI.Application({width:PARA.stage_pix.w+PARA.EP, height:PARA.stage_pix.h+PARA.EP, antialias:true, view:canvas});
+    //let canvas = document.getElementById("mycanvas");
+    let canvas = document.createElement("canvas");
+    document.body.appendChild(canvas);
+    app = new PIXI.Application({width:PARA.stage_pix.w+PARA.EP, height:PARA.stage_pix.h+PARA.EP, antialias:true, view:canvas});
     app.renderer.backgroundColor = PARA.backgroundColor;
     app.stage.interactive = true;
     app.stage.addChild(container);   
@@ -233,4 +235,7 @@ export function loadFisheyeLens() {
         updateLinechartsSprite(h,w);
     });
     //container.addChild(linechartsSprite);
+}
+export function destroyFisheyeLens() {
+    app.destroy(true,true);
 }
