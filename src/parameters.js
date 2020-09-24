@@ -12,7 +12,7 @@ export const step_pix = {'h':stage_pix.h/table.h,'w':stage_pix.w/table.w};
 export const linechartsTextureScale = 1;
 export const chartRatio=0.8;
 export const nodeRadius =0.2;
-export const EP = 0;
+export const EP = 100;
 export function loadParameters() {
     table.h=nodeCnt;
     table.w=nodeCnt;
