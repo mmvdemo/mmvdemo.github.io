@@ -3,55 +3,11 @@ import {createBackgroundTexture,createLineChartsTexture} from "./utils.js";
 
 let focal = {'h':1,'w':1};
 let distort = {'h':25,'w':25};
+let focusPos = {'h':-1,'w':-1};
 let fisheyeScale = 9;
 let d = 0.001;
 let distort_pix = {'h':distort.h*PARA.step_pix.h,'w':distort.w*PARA.step_pix.w};
 let quad,backgroundSprite,linechartsSprite;
-//const focalScaleSlider = document.getElementById("focal_scale");
-//const focalScaleText = document.getElementById("focal_scale_text");
-//const focalRangeSlider = document.getElementById("focal_range");
-//const focalRangeText = document.getElementById("focal_range_text");
-//const distortRangeSlider = document.getElementById("distort_range");
-//const distortRangeText = document.getElementById("distort_range_text");
-//focalScaleText.innerHTML = focalScaleSlider.value;
-//fisheyeScale = Number(focalScaleSlider.value);
-
-//focalRangeText.innerHTML = focalRangeSlider.value;
-//focal.w = Number(focalRangeSlider.value);
-//focal.h = Number(focalRangeSlider.value);
-//
-//distortRangeText.innerHTML = distortRangeSlider.value;
-//distort.w = Number(distortRangeSlider.value);
-//distort.h = Number(distortRangeSlider.value);
-
-//let geometry = updateGeometry(h=Math.floor(distort.h/2),w=Math.floor(distort.w/2));
-//focalScaleSlider.oninput = function() {
-//    focalScaleText.innerHTML = this.value;
-//    fisheyeScale = Number(this.value);
-//    //geometry = updateGeometry(h=linechartsSprite.h,w=linechartsSprite.w);
-//    //quad.geometry = geometry;
-//    updateLinechartsSprite(h=linechartsSprite.h,w=linechartsSprite.w);
-//};
-//focalRangeSlider.oninput = function() {
-//    focalRangeText.innerHTML = this.value;
-//    focal.w = Number(this.value);
-//    if(focal.w%2==0) focal.w+=1;
-//    focal.h = focal.w;
-//    //geometry = updateGeometry(h=linechartsSprite.h,w=linechartsSprite.w);
-//    //quad.geometry = geometry;
-//    updateLinechartsSprite(h=linechartsSprite.h,w=linechartsSprite.w);
-//}
-//distortRangeSlider.oninput = function() {
-//    distortRangeText.innerHTML = this.value;
-//    distort.w = Number(this.value);
-//    if(distort.w%2==0) distort.w+=1;
-//    distort.h = distort.w;
-//    distort_pix.w=distort.w*PARA.step_pix.w;
-//    distort_pix.h=distort.h*PARA.step_pix.h;
-//    //geometry = updateGeometry(h=linechartsSprite.h,w=linechartsSprite.w);
-//    //quad.geometry = geometry;
-//    updateLinechartsSprite(h=linechartsSprite.h,w=linechartsSprite.w);
-//}
 
 const vertexSrc = `
 
@@ -85,48 +41,92 @@ const fragmentSrc = `
 
 function bufferIndex(h,w) {return h*(distort.w+1)+w;};
 function h1(x) {return 1-(d+1)*x/(d*x+1);};
-function updateQuad(h,w) {
+function getPolarPosition(h,w,f) {
+    const f_pix = {'h':f['h']*PARA.step_pix.h,'w':f['w']*PARA.step_pix.w};
+    let beta_buf = {};
+    if(f.h>h) {
+        beta_buf['horizontal'] =(f.h-h)/f.h;
+    } else {
+        beta_buf['horizontal'] = (h-f.h)/(distort.h-f.h);
+    }
+    if (f.w>w) {
+        beta_buf['vertical'] = (f.w-w)/f.w;
+    } else {
+        beta_buf['vertical'] = (w-f.w)/(distort.w-f.w);
+    }
+    let beta = Math.max(beta_buf['horizontal'],beta_buf['vertical']);
+    let scale = h1(beta);
+    let pos = {
+        'h':h*PARA.step_pix.h+ scale*(h*PARA.step_pix.h-f_pix['h']),
+        'w':w*PARA.step_pix.w+ scale*(w*PARA.step_pix.w-f_pix['w'])
+    };
+    return pos;
+}
+function getFocusInQuad(h,w) {
     const frame = {'h':(distort.h-focal.h)/2,'w':(distort.w-focal.w)/2}; 
     const lensOrigin = {'h':Math.min(PARA.table.h-distort.h+1,Math.max(0,h-Math.floor(distort.h/2))),'w':Math.min(PARA.table.w-distort.w+1,Math.max(0,w-Math.floor(distort.w/2)))};
-    const bgTexture = createBackgroundTexture(lensOrigin.h,lensOrigin.w,lensOrigin.h+distort.h-1,lensOrigin.w+distort.w-1);
-    quad.shader.uniforms.uSampler2 = bgTexture;
-    quad.x = lensOrigin.w * PARA.step_pix.w;
-    quad.y = lensOrigin.h * PARA.step_pix.h;
     const f = {};
     if(w<=frame.w) {
         f['w'] = w-lensOrigin.w;
     } else if (w>=PARA.table.w-frame.w-1) {
-        f['w'] = w-lensOrigin.w+0.5;
+        f['w'] = w-lensOrigin.w+1;
     } else {
         f['w'] = distort.w/2;
     }
     if(h<=frame.h) {
         f['h'] = h-lensOrigin.h;
     } else if(h>=PARA.table.h-frame.h-1) {
-        f['h'] = h-lensOrigin.h+0.5;
+        f['h'] = h-lensOrigin.h+1;
     } else {
         f['h'] = distort.h/2;
     }
-    
-    const f_pix = {'h':f['h']*PARA.step_pix.h,'w':f['w']*PARA.step_pix.w};
+    return f;
+}
+function searchMousePosition(mouselocal) {
+    console.log('search ');
+    let pos = {'h':-1,'w':-1};
+    const buffer = quad.geometry.getBuffer('aVertexPosition');
+    for(let i=0;i<distort.h;i++) {
+        for(let j=0;j<distort.w;j++) {
+            // use rectangle to approximate grid's shape under distortion
+            let pos1 = {
+                'h':buffer.data[2*bufferIndex(i,j)+1],
+                'w':buffer.data[2*bufferIndex(i,j)]
+            };
+            let pos2 = {
+                'h':buffer.data[2*bufferIndex(i+1,j+1)+1],
+                'w':buffer.data[2*bufferIndex(i+1,j+1)]
+            };
+            if(mouselocal.h>pos1.h&&mouselocal.h<pos2.h&&mouselocal.w>pos1.w&&mouselocal.w<pos2.w) {
+                pos.h=i;
+                pos.w=j;
+                return pos;
+            }
+        }
+    }
+    pos.h = Math.floor(mouselocal.h/PARA.step_pix.h);
+    pos.w = Math.floor(mouselocal.w/PARA.step_pix.w);
+    return pos;
+}
+function updateQuad(h,w) {
+    console.log(`update`);
+    focusPos.h=h;
+    focusPos.w=w;
+    const lensOrigin = {
+        'h':Math.min(PARA.table.h-distort.h+1,Math.max(0,h-Math.floor(distort.h/2))),
+        'w':Math.min(PARA.table.w-distort.w+1,Math.max(0,w-Math.floor(distort.w/2)))
+    };
+    const bgTexture = createBackgroundTexture(lensOrigin.h,lensOrigin.w,lensOrigin.h+distort.h-1,lensOrigin.w+distort.w-1);
+    quad.shader.uniforms.uSampler2 = bgTexture;
+    quad.x = lensOrigin.w * PARA.step_pix.w;
+    quad.y = lensOrigin.h * PARA.step_pix.h;
+    const f = getFocusInQuad(h,w); 
     const buffer = quad.geometry.getBuffer('aVertexPosition');
     for(let i=0;i<=distort.h;i++) {
         for(let j=0;j<=distort.w;j++) {
-            let beta_buf = {};
-            if(f.h>i) {
-                beta_buf['horizontal'] =(f.h-i)/f.h;
-            } else {
-                beta_buf['horizontal'] = (i-f.h)/(distort.h-f.h);
-            }
-            if (f.w>j) {
-                beta_buf['vertical'] = (f.w-j)/f.w;
-            } else {
-                beta_buf['vertical'] = (j-f.w)/(distort.w-f.w);
-            }
-            let beta = Math.max(beta_buf['horizontal'],beta_buf['vertical']);
-            let scale = h1(beta);
-            buffer.data[2*bufferIndex(h=i,w=j)+1] =i*PARA.step_pix.h+ scale*(i*PARA.step_pix.h-f_pix['h']);
-            buffer.data[2*bufferIndex(h=i,w=j)] =j*PARA.step_pix.w+ scale*(j*PARA.step_pix.w-f_pix['w']);
+            let pos = getPolarPosition(i,j,f); 
+            buffer.data[2*bufferIndex(i,j)+1] =pos.h;
+            buffer.data[2*bufferIndex(i,j)] =pos.w;
         }
     }
     buffer.update();
@@ -228,9 +228,26 @@ export function loadFisheyeLens() {
         const mouseOnCanvas = {'h':evt.clientY-rect.top-container.y,'w':evt.clientX-rect.left-container.x};
         let w = Math.floor(mouseOnCanvas.w/PARA.step_pix.w);
         let h = Math.floor(mouseOnCanvas.h/PARA.step_pix.h);
+
         if(w<0||h<0||w>=PARA.table.w+1||h>=PARA.table.h+1) {
             return;
         }
+
+        const lensOrigin = {
+            'h':Math.min(PARA.table.h-distort.h+1,Math.max(0,focusPos.h-Math.floor(distort.h/2))),
+            'w':Math.min(PARA.table.w-distort.w+1,Math.max(0,focusPos.w-Math.floor(distort.w/2)))
+        };
+        
+        if((focusPos.h>=0&&focusPos.w>=0)&&(Math.abs(h-focusPos.h)<=Math.floor(distort.h/2))&&(Math.abs(w-focusPos.w)<=Math.floor(distort.w/2))) {
+            let mouselocal = {
+                'h':mouseOnCanvas.h-lensOrigin.h*PARA.step_pix.h,
+                'w':mouseOnCanvas.w-lensOrigin.w*PARA.step_pix.w
+            };
+            let pos = searchMousePosition(mouselocal); 
+            w = pos.w+lensOrigin.w;
+            h = pos.h+lensOrigin.h;
+        }
+
         updateQuad(h,w);
         updateLinechartsSprite(h,w);
     });
