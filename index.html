@@ -24,7 +24,8 @@
         <div>
             <select id="technique">
                 <option value="cartesianlens">cartesian lens</option>
-                <option value="tablelens">table lens</option>
+                <option value="tablelens_stretch">table lens(stretch)</option>
+                <option value="tablelens_step">table lens(step)</option>
                 <option value="fisheyelens">fisheye lens</option>
                 <option value="zoom">zoom and pan</option>
             </select>
@@ -47,19 +48,22 @@
         <script type="module"> 
             import {loadData} from "./src/data.js";
             import {destroyCartesianLens,loadCartesianLens} from "./src/cartesianLens.js";
-            import {destroyTableLens,loadTableLens} from "./src/tableLens.js";
+            import {destroyTableLens_stretch,loadTableLens_stretch} from "./src/tableLens.js";
+            import {destroyTableLens_step,loadTableLens_step} from "./src/tableLens.js";
             import {destroyFisheyeLens,loadFisheyeLens} from "./src/fisheyeLens.js";
             import {destroyZoom,loadZoom} from "./src/zoom.js";
             loadData();
             let destroyFunc = {
                 "cartesianlens":destroyCartesianLens,
-                "tablelens":destroyTableLens,
+                "tablelens_stretch":destroyTableLens_stretch,
+                "tablelens_step":destroyTableLens_step,
                 "fisheyelens":destroyFisheyeLens,
                 "zoom":destroyZoom
             };
             let loadFunc = {
                 "cartesianlens":loadCartesianLens,
-                "tablelens":loadTableLens,
+                "tablelens_stretch":loadTableLens_stretch,
+                "tablelens_step":loadTableLens_step,
                 "fisheyelens":loadFisheyeLens,
                 "zoom":loadZoom
             };
