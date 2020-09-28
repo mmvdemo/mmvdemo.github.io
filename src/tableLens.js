@@ -1,9 +1,10 @@
 import * as PARA from "./parameters.js";
-import {createGridGeometry,createBackgroundTexture,createLineChartsTexture} from "./utils.js";
+import {createGridGeometry,createBackgroundTexture,createLineChartsTexture,initSliders,clearSliders} from "./utils.js";
 // for table lens
 let focalScale = 10;
 let contextRadius=1;
 let quad;
+let style_flag;
 //DOI
 let tableDOI = function(dis) {
     if (Math.abs(dis)<=contextRadius) return focalScale;
@@ -58,8 +59,14 @@ const fragmentSrc = `
     void main() {
         gl_FragColor = texture2D(uSampler2, vUvs);
                 }`;
-const maskSprites = {};
-function initMaskSprite(container) {
+let maskSprites = {};
+let maskSpriteContainer;
+function initMaskSprite() {
+    maskSprites = {};
+    for(let i=0;i<maskSpriteContainer.children.length;i++) {
+        maskSpriteContainer.children[i].destroy(true);
+    }
+    maskSpriteContainer.removeChildren();
     const rgba = new Float32Array(4); 
     const color = PARA.backgroundColor;
     rgba[0] = (color>>16)/256;
@@ -74,16 +81,16 @@ function initMaskSprite(container) {
     let sprite;
     for(let i=0;i<2*(contextRadius*2+1);i++) {
         sprite = new PIXI.Sprite(texture);
-        container.addChild(sprite);
+        maskSpriteContainer.addChild(sprite);
         maskSprites.hori_left.push(sprite); 
         sprite = new PIXI.Sprite(texture);
-        container.addChild(sprite);
+        maskSpriteContainer.addChild(sprite);
         maskSprites.hori_right.push(sprite);
         sprite = new PIXI.Sprite(texture);
-        container.addChild(sprite);
+        maskSpriteContainer.addChild(sprite);
         maskSprites.vert_up.push(sprite);
         sprite = new PIXI.Sprite(texture);
-        container.addChild(sprite);
+        maskSpriteContainer.addChild(sprite);
         maskSprites.vert_down.push(sprite);
     }
 }
@@ -200,8 +207,53 @@ function updateMaskSprite() {
         sprite.scale.set(len.hori_right.w,len.hori_right.h);
     }
 }
+function scale_sliderHandle() {
+    let text = document.getElementById("tablelensScale-text");
+    let slider = document.getElementById("tablelensScale");
+    text.innerHTML = slider.value;
+    
+    focalScale = Number(slider.value);
+    updateQuad(focusPos.h,focusPos.w);
+    if(style_flag=="STEP") {
+        updateMaskSprite();
+    }
+}
+function contextRadius_sliderHandle() {
+    let text = document.getElementById("contextRadius-text");
+    let slider = document.getElementById("contextRadius");
+    text.innerHTML = slider.value;
+
+    contextRadius = Number(slider.value);
+    updateQuad(focusPos.h,focusPos.w);
+    if(style_flag=="STEP") {
+        initMaskSprite();
+    }
+};
 let app;
 function init(s) {
+    style_flag = s;
+    let sliderInfo = [];
+    let scale_para = {
+        "defaultValue":10,
+        "max":20,
+        "min":1,
+        "id":"tablelensScale",
+        "oninputHandle":scale_sliderHandle
+    };
+    sliderInfo.push(scale_para);
+    let contextRadius_para = {
+        "defaultValue":1,
+        "max":2,
+        "min":0,
+        "id":"contextRadius",
+        "oninputHandle":contextRadius_sliderHandle
+    };
+    sliderInfo.push(contextRadius_para);
+    initSliders(sliderInfo);
+
+    focalScale = scale_para.defaultValue;
+    contextRadius = contextRadius_para.defaultValue;
+
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
     const uniforms = {
         uSampler2: backgroundTexture,
@@ -221,9 +273,12 @@ function init(s) {
     app.stage.interactive = true;
     app.stage.addChild(container);
     container.addChild(quad);
+
+    maskSpriteContainer = new PIXI.Container();
+    container.addChild(maskSpriteContainer);
     
-    if(s=="STEP") {
-        initMaskSprite(container);
+    if(style_flag=="STEP") {
+        initMaskSprite();
     }
     canvas.addEventListener('mousemove',function(evt) {
         const rect = canvas.getBoundingClientRect();
@@ -236,7 +291,7 @@ function init(s) {
         w = Math.max(contextRadius,Math.min(PARA.table.w-contextRadius-1,w));
         h = Math.max(contextRadius,Math.min(PARA.table.h-contextRadius-1,h));
         updateQuad(h,w);
-        if(s=="STEP") {
+        if(style_flag=="STEP") {
             updateMaskSprite();
         }
     });
@@ -249,7 +304,9 @@ export function loadTableLens_step() {
 }
 export function destroyTableLens_stretch() {
     app.destroy(true,true);
+    clearSliders();
 }
 export function destroyTableLens_step() {
     app.destroy(true,true);
+    clearSliders();
 }

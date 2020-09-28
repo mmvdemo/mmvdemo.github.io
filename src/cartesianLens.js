@@ -1,8 +1,7 @@
 import * as PARA from "./parameters.js";
-import {createGridGeometry,createBackgroundTexture,createLineChartsTexture} from "./utils.js";
+import {createGridGeometry,createBackgroundTexture,createLineChartsTexture,initSliders,clearSliders} from "./utils.js";
 let d=10;
 let focusPos = {'w':-1,'h':-1};
-let focusPos_pix = {'w':-1,'h':-1};
 let quad;
 const vertexSrc = `
 
@@ -77,8 +76,28 @@ function updateQuad(h,w) {
     }
     buffer.update();
 };
+
+function d_sliderHandle() {
+    let text = document.getElementById("d-text");
+    let slider = document.getElementById("d");
+    text.innerHTML = slider.value;
+
+    d = Number(slider.value);
+    updateQuad(focusPos.h,focusPos.w);
+};
 let app;
 export function loadCartesianLens() {
+    let sliderInfo = [];
+    let d_para = {
+        "defaultValue":10,
+        "max":20,
+        "min":1,
+        "id":"d",
+        "oninputHandle":d_sliderHandle
+    };
+    sliderInfo.push(d_para);
+    initSliders(sliderInfo);
+
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
     const uniforms = {
         uSampler2: backgroundTexture,
@@ -119,4 +138,5 @@ export function loadCartesianLens() {
 }
 export function destroyCartesianLens() {
     app.destroy(true,true);
+    clearSliders();
 }

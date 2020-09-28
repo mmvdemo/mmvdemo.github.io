@@ -1,5 +1,5 @@
 import * as PARA from "./parameters.js";
-import {createBackgroundTexture,createLineChartsTexture} from "./utils.js";
+import {createBackgroundTexture,createLineChartsTexture,initSliders,clearSliders} from "./utils.js";
 
 let focal = {'h':1,'w':1};
 let distort = {'h':25,'w':25};
@@ -8,6 +8,7 @@ let fisheyeScale = 9;
 let d = 0.001;
 let distort_pix = {'h':distort.h*PARA.step_pix.h,'w':distort.w*PARA.step_pix.w};
 let quad,backgroundSprite,linechartsSprite;
+let style_flag;
 
 const vertexSrc = `
 
@@ -39,6 +40,45 @@ const fragmentSrc = `
         gl_FragColor = texture2D(uSampler2, vUvs);
                 }`;
 
+function createFisheyeGeometry() {
+    const pos_list = [],pos_list_uv = [],index_list=[];
+    const f = {'h':distort.h/2,'w':distort.w/2};
+    for(let h=0;h<=distort.h;h++) {
+        for(let w=0;w<=distort.w;w++) {
+            let pos = getPolarPosition(h,w,f); 
+            pos_list.push(pos.w);
+            pos_list.push(pos.h);
+            pos_list_uv.push(w/distort.w);
+            pos_list_uv.push(h/distort.h);
+        }
+    }
+    for(let h=0;h<distort.h;h++) {
+        for(let w=0;w<distort.w;w++) {
+            if((h<Math.floor(distort.h/2)&&w<Math.floor(distort.w/2))||(h>=Math.floor(distort.h/2)&&w>=Math.floor(distort.w/2))) {
+                index_list.push(h*(distort.w+1)+w);
+                index_list.push(h*(distort.w+1)+w+1);
+                index_list.push((h+1)*(distort.w+1)+w+1);
+                
+                index_list.push(h*(distort.w+1)+w);
+                index_list.push((h+1)*(distort.w+1)+w);
+                index_list.push((h+1)*(distort.w+1)+w+1);
+            } else {
+                index_list.push(h*(distort.w+1)+w);
+                index_list.push(h*(distort.w+1)+w+1);
+                index_list.push((h+1)*(distort.w+1)+w);
+                
+                index_list.push(h*(distort.w+1)+w+1);
+                index_list.push((h+1)*(distort.w+1)+w);
+                index_list.push((h+1)*(distort.w+1)+w+1);
+            }
+        }
+    }
+    const geometry = new PIXI.Geometry()
+                    .addAttribute('aVertexPosition',pos_list,2)
+                    .addAttribute('aUvs',pos_list_uv,2)
+                    .addIndex(index_list);
+    return geometry;
+};
 function bufferIndex(h,w) {return h*(distort.w+1)+w;};
 function h1(x) {return 1-(d+1)*x/(d*x+1);};
 function getPolarPosition(h,w,f) {
@@ -168,8 +208,55 @@ function updateLinechartsSprite(h,w) {
     linechartsSprite.h=h;
     linechartsSprite.w = w;
 };
+function distort_sliderHandle() {
+    let text = document.getElementById("distort-text");
+    let slider = document.getElementById("distort");
+    text.innerHTML = slider.value;
+    distort.h = Number(slider.value);
+    distort.w = Number(slider.value);
+    const geometry = createFisheyeGeometry();
+    quad.geometry = geometry;
+    if(style_flag==="INSIDE") {
+        updateQuad_inside(focusPos.h,focusPos.w);
+    } else if(style_flag==="OUTSIDE") {
+        updateQuad_outside(focusPos.h,focusPos.w);
+    }
+};
+function d_sliderHandle() {
+    let text = document.getElementById("d-text");
+    let slider = document.getElementById("d");
+    text.innerHTML = slider.value;
+    d = Number(slider.value);
+    const geometry = createFisheyeGeometry();
+    quad.geometry = geometry;
+    if(style_flag==="INSIDE") {
+        updateQuad_inside(focusPos.h,focusPos.w);
+    } else if(style_flag==="OUTSIDE") {
+        updateQuad_outside(focusPos.h,focusPos.w);
+    }
+};
 let app;
 function init(s) {
+    style_flag = s;
+    let sliderInfo = [];
+    let distort_para = {
+        "defaultValue":15,
+        "max":50,
+        "min":1,
+        "id":"distort",
+        "oninputHandle":distort_sliderHandle
+    };
+    sliderInfo.push(distort_para);
+    let d_para = {
+        "defaultValue":1,
+        "max":10,
+        "min":1,
+        "id":"d",
+        "oninputHandle":d_sliderHandle
+    };
+    sliderInfo.push(d_para);
+    initSliders(sliderInfo);
+
     distort_pix = {'h':distort.h*PARA.step_pix.h,'w':distort.w*PARA.step_pix.w};
     let EP = 0;
     if(s==="INSIDE") {
@@ -197,46 +284,10 @@ function init(s) {
         uSampler2: backgroundTexture,
     };
     const shader = PIXI.Shader.from(vertexSrc, fragmentSrc, uniforms);
-    const pos_list = [],pos_list_uv = [],index_list=[];
-    const f = {'h':distort.h/2,'w':distort.w/2};
-    for(let h=0;h<=distort.h;h++) {
-        for(let w=0;w<=distort.w;w++) {
-            let pos = getPolarPosition(h,w,f); 
-            pos_list.push(pos.w);
-            pos_list.push(pos.h);
-            pos_list_uv.push(w/distort.w);
-            pos_list_uv.push(h/distort.h);
-        }
-    }
-    for(let h=0;h<distort.h;h++) {
-        for(let w=0;w<distort.w;w++) {
-            if((h<Math.floor(distort.h/2)&&w<Math.floor(distort.w/2))||(h>=Math.floor(distort.h/2)&&w>=Math.floor(distort.w/2))) {
-                index_list.push(h*(distort.w+1)+w);
-                index_list.push(h*(distort.w+1)+w+1);
-                index_list.push((h+1)*(distort.w+1)+w+1);
-                
-                index_list.push(h*(distort.w+1)+w);
-                index_list.push((h+1)*(distort.w+1)+w);
-                index_list.push((h+1)*(distort.w+1)+w+1);
-            } else {
-                index_list.push(h*(distort.w+1)+w);
-                index_list.push(h*(distort.w+1)+w+1);
-                index_list.push((h+1)*(distort.w+1)+w);
-                
-                index_list.push(h*(distort.w+1)+w+1);
-                index_list.push((h+1)*(distort.w+1)+w);
-                index_list.push((h+1)*(distort.w+1)+w+1);
-            }
-        }
-    }
-    const geometry = new PIXI.Geometry()
-                    .addAttribute('aVertexPosition',pos_list,2)
-                    .addAttribute('aUvs',pos_list_uv,2)
-                    .addIndex(index_list);
+    const geometry = createFisheyeGeometry(); 
     quad = new PIXI.Mesh(geometry, shader);
     quad.position.set(0,0);
     quad.interactive = true;
-    
    
     const container = new PIXI.Container();
     container.x = EP/2;
@@ -285,7 +336,7 @@ function init(s) {
         } else if (s==="OUTSIDE") {
             updateQuad_outside(h,w); 
         }
-        updateLinechartsSprite(h,w);
+        //updateLinechartsSprite(h,w);
     });
     //container.addChild(linechartsSprite);
 }
@@ -297,7 +348,9 @@ export function loadFisheyeLens_outside() {
 }
 export function destroyFisheyeLens_inside() {
     app.destroy(true,true);
+    clearSliders();
 }
 export function destroyFisheyeLens_outside() {
     app.destroy(true,true);
+    clearSliders();
 }
