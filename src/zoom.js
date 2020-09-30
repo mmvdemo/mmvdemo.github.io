@@ -11,20 +11,22 @@ function zoom() {
     let y = d3.event.transform.y;
     let scale = d3.event.transform.k;
     
-    container.x = x;
-    container.y = y;
-    container.scale.x = scale;
-    container.scale.y = scale;
+    container.position.set(x,y);
+    container.scale.set(scale,scale);
 
-    linechartsSprite.x = x+linechartsSprite.w1*PARA.step_pix.w*scale;
-    linechartsSprite.y = y+linechartsSprite.h1*PARA.step_pix.h*scale;
+    linechartsSprite.x = x+linechartsSprite.pos1.w*PARA.step_pix.w*scale;
+    linechartsSprite.y = y+linechartsSprite.pos1.h*PARA.step_pix.h*scale;
     linechartsSprite.scale.x = scale/linechartsSprite.svgScale;
     linechartsSprite.scale.y = scale/linechartsSprite.svgScale;
 
-    let h1 = Math.max(0,Math.floor((0-y)/scale/PARA.step_pix.h));
-    let w1 = Math.max(0,Math.floor((0-x)/scale/PARA.step_pix.w));
-    let h2 = Math.min(PARA.table.h-1,Math.floor((PARA.stage_pix.h-y)/scale/PARA.step_pix.h));
-    let w2 = Math.min(PARA.table.w-1,Math.floor((PARA.stage_pix.w-x)/scale/PARA.step_pix.w));
+    let pos1 = {
+        'h':Math.max(0,Math.floor((0-y)/scale/PARA.step_pix.h)),
+        'w':Math.max(0,Math.floor((0-x)/scale/PARA.step_pix.w))
+    };
+    let pos2 = {
+        'h':Math.min(PARA.table.h-1,Math.floor((PARA.stage_pix.h-y)/scale/PARA.step_pix.h)),
+        'w':Math.min(PARA.table.w-1,Math.floor((PARA.stage_pix.w-x)/scale/PARA.step_pix.w))
+    };
     //console.log(`mouse:${d3.mouse(canvas)}`);
     //console.log(`left corner is on ${Math.floor((0-y)/scale/PARA.step_pix.h)}, ${Math.floor((0-x)/scale/PARA.step_pix.w)}`);
     //console.log(`hovering on (row,column): (${Math.floor((d3.mouse(canvas)[1]-y)/PARA.step_pix.h/scale)},${Math.floor((d3.mouse(canvas)[0]-x)/scale/PARA.step_pix.w)})`);
@@ -39,7 +41,7 @@ function zoom() {
             return false;
         } else if(linechartsSprite.scale.x>maxScale) {
             return true;
-        } else if(h1<linechartsSprite.h1||w1<linechartsSprite.w1||h2>linechartsSprite.h2||w2>linechartsSprite.w2){
+        } else if(pos1.h<linechartsSprite.pos1.h||pos1.w<linechartsSprite.pos1.w||pos2.h>linechartsSprite.pos2.h||pos2.w>linechartsSprite.pos2.w){
             return true;
         } else {
             return false;
@@ -48,20 +50,19 @@ function zoom() {
     }
     if(needUpdate()) {
         console.log('need update');
-        console.log(`h1,w1 ${h1},${w1}  h2,w2 ${h2},${w2}`);
-        linechartsSprite.h1=h1;
-        linechartsSprite.w1=w1;
-        linechartsSprite.h2=h2;
-        linechartsSprite.w2=w2;
-        let gridH = PARA.step_pix.h*scale;
-        let gridW = PARA.step_pix.w*scale;
+        console.log(`h1,w1 ${pos1.h},${pos1.w}  h2,w2 ${pos2.h},${pos2.w}`);
+        linechartsSprite.pos1 = pos1;
+        linechartsSprite.pos2 = pos2;
+        let grid_pix = {
+            'h':PARA.step_pix.h*scale,
+            'w':PARA.step_pix.w*scale
+        };
         
-        let newTexture = createLineChartsTexture(gridH,gridW,h1,w1,h2,w2); 
+        let newTexture = createLineChartsTexture(grid_pix,pos1,pos2);
         linechartsSprite.texture = newTexture;
-        linechartsSprite.x=x+w1*PARA.step_pix.w*scale;
-        linechartsSprite.y=y+h1*PARA.step_pix.h*scale;
-        linechartsSprite.scale.x=1;
-        linechartsSprite.scale.y=1;
+        linechartsSprite.x=x+pos1.w*PARA.step_pix.w*scale;
+        linechartsSprite.y=y+pos1.w*PARA.step_pix.h*scale;
+        linechartsSprite.scale.set(1,1);
         linechartsSprite.svgScale = scale;
     }
 }
@@ -80,10 +81,8 @@ export function loadZoom() {
     backgroundSprite.y = 0;
 
     linechartsSprite = new PIXI.Sprite();
-    linechartsSprite.h1=PARA.table.h+1;
-    linechartsSprite.w1=PARA.table.w+1;
-    linechartsSprite.h2=-1;
-    linechartsSprite.w2=-1;
+    linechartsSprite.pos1 = {'h':PARA.table.h+1,'w':PARA.table.w+1};
+    linechartsSprite.pos2 = {'h':-1,'w':-1};
     linechartsSprite.svgScale = 1;
     //let canvas = document.getElementById("mycanvas");
     let canvas = document.createElement("canvas");

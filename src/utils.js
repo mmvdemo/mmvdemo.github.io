@@ -17,7 +17,7 @@ export function createBackgroundTexture(h1,w1,h2,w2) {
             if(i+h1<0||j+w1<0||i+h1>=PARA.table.h||j+w1>=PARA.table.w) {
                 continue;
             }
-            let value = getValue(timeEnd,i+h1,j+w1);
+            let value = getValue(currentTime,i+h1,j+w1);
             let colorStr = d3.interpolateYlGn(value);
             let color = rgbStrToHex(colorStr);
             let idx = i*width+j;
@@ -59,7 +59,7 @@ function createLineChartsSvg(gridH,gridW,h1,w1,h2,w2) {
 
             let dataset = d3.range(timeStart,timeEnd+1).map(function(d) { return {"time":d, "value": getValue(d,i,j) } });
             let stroke = PARA.lineColorDark;
-            if(dataset[timeEnd-timeStart].value>0.5) stroke = PARA.lineColorLight;
+            if(dataset[currentTime-timeStart].value>0.5) stroke = PARA.lineColorLight;
 
             let chartGroup = svg.append("g")
                                 .attr("transform",`translate(${translateW+originW},${translateH+originH})`)
@@ -97,12 +97,71 @@ function createLineChartsSvg(gridH,gridW,h1,w1,h2,w2) {
     }
     return svg;
 }
-export function createLineChartsTexture(gridH,gridW,h1,w1,h2,w2) {
-    let svg = createLineChartsSvg(gridH,gridW,h1,w1,h2,w2);
+export function createLineChartsTexture(grid_pix,pos1,pos2) {
+    let svg = createLineChartsSvg(grid_pix.h,grid_pix.w,pos1.h,pos1.w,pos2.h,pos2.w);
     let svgStr = svgToBase64(svg);
     let texture = PIXI.Texture.from(svgStr);
     return texture;
 }
+let dotTexture;
+export function initDotTexture(renderer) {
+    const graphics = new PIXI.Graphics();
+    graphics.beginFill(0xDE3249,1);
+    graphics.drawCircle(0,0,PARA.nodeRadius);
+    graphics.endFill();
+    const texture = renderer.generateTexture(graphics);
+    dotTexture = texture;
+}
+export function createSingleLineChart(clickHandle) {
+    const container = new PIXI.Container();
+    container.interactive = true;
+    const background = new PIXI.Sprite();
+    container.addChild(background);
+    const dots = new PIXI.Container();
+    dots.interactive = true;
+    for(let i=timeStart;i<=timeEnd;i++) {
+        const dot = new PIXI.Sprite(dotTexture);
+        dot.time = i;
+        dot.interactive = true;
+        dot.on("mouseover",function(e) {
+            dot.scale.set(1.5,1.5);
+        });
+        dot.on("mouseout",function(e) {
+            dot.scale.set(1,1);
+        });
+        dot.on("click",function(e) {
+            currentTime = this.time;
+            clickHandle();
+        });
+        dots.addChild(dot);
+    }
+    container.addChild(dots);
+    return container;
+}
+export function updateSingleLineChart(linechart,grid_pix,pos) {
+    const texture = createLineChartsTexture(grid_pix,pos,pos); 
+    const background = linechart.getChildAt(0);
+    const dots = linechart.getChildAt(1);
+    background.texture = texture;
+    const chartTrans_pix = {
+        'h':grid_pix.h*(1-PARA.chartRatio)/2,
+        'w':grid_pix.w*(1-PARA.chartRatio)/2
+    };
+    const chart_pix = {
+        'h':grid_pix.h*PARA.chartRatio,
+        'w':grid_pix.w*PARA.chartRatio
+    };
+    dots.position.set(chartTrans_pix.w,chartTrans_pix.h);
+    for(let i=timeStart;i<=timeEnd;i++) {
+        const value = getValue(i,pos.h,pos.w);
+        const dot = dots.getChildAt(i-timeStart);
+        dot.pivot.set(PARA.nodeRadius,PARA.nodeRadius);
+        dot.interactive = true;
+        dot.x = chart_pix.w*(i-timeStart)/(timeEnd-timeStart);
+        dot.y = (1-value)*chart_pix.h;
+    }
+}
+
 function svgToBase64(svg) {
     let svgStr = new XMLSerializer().serializeToString(svg.node());
     let image64 = `data:image/svg+xml;base64,${btoa(svgStr)}`;

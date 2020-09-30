@@ -1,8 +1,10 @@
 import * as PARA from "./parameters.js";
-import {createGridGeometry,createBackgroundTexture,createLineChartsTexture,initSliders,clearSliders} from "./utils.js";
+import {initDotTexture,updateSingleLineChart,createSingleLineChart,createGridGeometry,createBackgroundTexture,createLineChartsTexture,initSliders,clearSliders} from "./utils.js";
 let d=10;
 let focusPos = {'w':-1,'h':-1};
 let quad;
+let app;
+let linechart;
 const vertexSrc = `
 
     precision mediump float;
@@ -63,10 +65,27 @@ function binSearch(n,s,lo,hi) {
     }
     return lo-1;
 }
+let pt = new PIXI.Graphics();
+pt.interactive = true;
+pt.beginFill(0xDE3249, 1);
+pt.drawCircle(0,0,10);
+pt.endFill();
+pt.hitArea = PIXI.Circle(0,0,10);
+//pt.on("mousemove",function(e) {
+//    console.log("testing move");
+//})
+//pt.on("mouseover",function(e) {
+//    console.log("testing in");
+//});
+//pt.on("mouseout",function(e) {
+//    console.log("testing out");
+//});
+
 function updateQuad(h,w) {
     focusPos.h = h>PARA.table.h/2?h+1:h;
     focusPos.w = w>PARA.table.w/2?w+1:w;
     
+    pt.position.set((focusPos.w-0.5)*PARA.step_pix.w,(focusPos.h-0.5)*PARA.step_pix.h); 
     const buffer = quad.geometry.getBuffer('aVertexPosition');
     for(let i=0;i<=PARA.table.h;i++) {
         for(let j=0;j<=PARA.table.w;j++) {
@@ -76,6 +95,21 @@ function updateQuad(h,w) {
     }
     buffer.update();
 };
+function updateLineCharts(h,w) {
+    const buffer = quad.geometry.getBuffer('aVertexPosition');
+    let grid_pix = {
+        'h':buffer.data[2*bufferIndex(h+1,w)+1]-buffer.data[2*bufferIndex(h,w)+1],
+        'w':buffer.data[2*bufferIndex(h,w+1)]-buffer.data[2*bufferIndex(h,w)]
+    };
+    let pos = {'h':h,'w':w};
+    let pos_pix = {
+        'h':buffer.data[2*bufferIndex(h,w)+1],
+        'w':buffer.data[2*bufferIndex(h,w)]
+    };
+    updateSingleLineChart(linechart,grid_pix,pos);
+    linechart.position.set(pos_pix.w,pos_pix.h);
+    linechart.visible = true;
+}
 
 function d_sliderHandle() {
     let text = document.getElementById("d-text");
@@ -85,7 +119,10 @@ function d_sliderHandle() {
     d = Number(slider.value);
     updateQuad(focusPos.h,focusPos.w);
 };
-let app;
+function changeCurrentTimeHandle() {
+    const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
+    quad.shader.uniforms.uSampler2 = backgroundTexture; 
+}
 export function loadCartesianLens() {
     let sliderInfo = [];
     let d_para = {
@@ -109,15 +146,18 @@ export function loadCartesianLens() {
     
     const container = new PIXI.Container();
     container.interactive = true;
-    //let canvas = document.getElementById("mycanvas");
     let canvas = document.createElement("canvas");
     document.body.appendChild(canvas);
     app = new PIXI.Application({width:PARA.stage_pix.w, height:PARA.stage_pix.h, antialias:true, view:canvas});
     app.renderer.backgroundColor = PARA.backgroundColor;
     app.stage.interactive = true;
     app.stage.addChild(container);
+    initDotTexture(app.renderer);
     container.addChild(quad);
-    
+    linechart = createSingleLineChart(changeCurrentTimeHandle);
+    linechart.visible = false;
+    container.addChild(linechart);
+    //container.addChild(pt);
     canvas.addEventListener('mousemove',function(evt) {
         const rect = canvas.getBoundingClientRect();
         const mouseOnCanvas = {'h':evt.clientY-rect.top-container.y,'w':evt.clientX-rect.left-container.x};
@@ -129,11 +169,12 @@ export function loadCartesianLens() {
             w = binSearch(mouseOnCanvas.w,'w',0,PARA.table.w);
             h = binSearch(mouseOnCanvas.h,'h',0,PARA.table.h);
         }
-        console.log(`h=${h},w=${w}`);
+        //console.log(`h=${h},w=${w}`);
         if(w<0||h<0||w>=PARA.table.w+1||h>=PARA.table.h+1) {
             return;
         }
         updateQuad(h,w);
+        updateLineCharts(h,w);
     });
 }
 export function destroyCartesianLens() {
