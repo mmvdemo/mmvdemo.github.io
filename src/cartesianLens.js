@@ -1,5 +1,5 @@
 import * as PARA from "./parameters.js";
-import {initDotTexture,updateSingleLineChart,createSingleLineChart,createGridGeometry,createBackgroundTexture,createLineChartsTexture,initSliders,clearSliders} from "./utils.js";
+import {initDotTexture,updateSingleLineChart,createSingleLineChart,createGridGeometry,createBackgroundTexture,initSliders,clearSliders} from "./utils.js";
 let d=10;
 let focusPos = {'w':-1,'h':-1};
 let quad;
@@ -65,27 +65,10 @@ function binSearch(n,s,lo,hi) {
     }
     return lo-1;
 }
-let pt = new PIXI.Graphics();
-pt.interactive = true;
-pt.beginFill(0xDE3249, 1);
-pt.drawCircle(0,0,10);
-pt.endFill();
-pt.hitArea = PIXI.Circle(0,0,10);
-//pt.on("mousemove",function(e) {
-//    console.log("testing move");
-//})
-//pt.on("mouseover",function(e) {
-//    console.log("testing in");
-//});
-//pt.on("mouseout",function(e) {
-//    console.log("testing out");
-//});
-
 function updateQuad(h,w) {
     focusPos.h = h>PARA.table.h/2?h+1:h;
     focusPos.w = w>PARA.table.w/2?w+1:w;
     
-    pt.position.set((focusPos.w-0.5)*PARA.step_pix.w,(focusPos.h-0.5)*PARA.step_pix.h); 
     const buffer = quad.geometry.getBuffer('aVertexPosition');
     for(let i=0;i<=PARA.table.h;i++) {
         for(let j=0;j<=PARA.table.w;j++) {
@@ -118,6 +101,7 @@ function d_sliderHandle() {
 
     d = Number(slider.value);
     updateQuad(focusPos.h,focusPos.w);
+    updateLineCharts(focusPos.h,focusPos.w);
 };
 function changeCurrentTimeHandle() {
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
@@ -152,12 +136,13 @@ export function loadCartesianLens() {
     app.renderer.backgroundColor = PARA.backgroundColor;
     app.stage.interactive = true;
     app.stage.addChild(container);
-    initDotTexture(app.renderer);
     container.addChild(quad);
+
+    initDotTexture(app.renderer);
     linechart = createSingleLineChart(changeCurrentTimeHandle);
     linechart.visible = false;
     container.addChild(linechart);
-    //container.addChild(pt);
+
     canvas.addEventListener('mousemove',function(evt) {
         const rect = canvas.getBoundingClientRect();
         const mouseOnCanvas = {'h':evt.clientY-rect.top-container.y,'w':evt.clientX-rect.left-container.x};

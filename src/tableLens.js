@@ -1,10 +1,12 @@
 import * as PARA from "./parameters.js";
-import {createGridGeometry,createBackgroundTexture,createLineChartsTexture,initSliders,clearSliders} from "./utils.js";
+import {initDotTexture,updateSingleLineChart,createSingleLineChart,createGridGeometry,createBackgroundTexture,initSliders,clearSliders} from "./utils.js";
 // for table lens
 let focalScale = 10;
 let contextRadius=1;
 let quad;
 let style_flag;
+let linecharts=[];
+let app;
 //DOI
 let tableDOI = function(dis) {
     if (Math.abs(dis)<=contextRadius) return focalScale;
@@ -207,6 +209,34 @@ function updateMaskSprite() {
         sprite.scale.set(len.hori_right.w,len.hori_right.h);
     }
 }
+function updateLineCharts(h,w) {
+    const buffer = quad.geometry.getBuffer('aVertexPosition');
+    let grid_pix = {
+        'h':buffer.data[2*bufferIndex(h+1,w)+1]-buffer.data[2*bufferIndex(h,w)+1],
+        'w':buffer.data[2*bufferIndex(h,w+1)]-buffer.data[2*bufferIndex(h,w)]
+    };
+    for(let i=0;i<2*contextRadius+1;i++) {
+        for(let j=0;j<2*contextRadius+1;j++) {
+            let pos = {'h':h-contextRadius+i,'w':w-contextRadius+j};
+            let pos_pix = {
+                'h':buffer.data[2*bufferIndex(pos.h,pos.w)+1],
+                'w':buffer.data[2*bufferIndex(pos.h,pos.w)]
+            };
+            if(pos.h<0 || pos.h>=PARA.table.h) {
+                linecharts[i][j].visible = false;
+                continue;
+            } else if(pos.w<0 || pos.w>=PARA.table.w) {
+                linecharts[i][j].visible = false;
+                continue;
+            } else {
+                console.log("true");
+                linecharts[i][j].visible = true;
+            }
+            updateSingleLineChart(linecharts[i][j],grid_pix,pos);
+            linecharts[i][j].position.set(pos_pix.w,pos_pix.h);
+        }
+    }
+}
 function scale_sliderHandle() {
     let text = document.getElementById("tablelensScale-text");
     let slider = document.getElementById("tablelensScale");
@@ -214,6 +244,7 @@ function scale_sliderHandle() {
     
     focalScale = Number(slider.value);
     updateQuad(focusPos.h,focusPos.w);
+    updateLineCharts(focusPos.h,focusPos.w);
     if(style_flag=="STEP") {
         updateMaskSprite();
     }
@@ -225,12 +256,17 @@ function contextRadius_sliderHandle() {
 
     contextRadius = Number(slider.value);
     updateQuad(focusPos.h,focusPos.w);
+    updateLineCharts(focusPos.h,focusPos.w);
     if(style_flag=="STEP") {
         initMaskSprite();
     }
 };
-let app;
+function changeCurrentTimeHandle() {
+    const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1); 
+    quad.shader.uniforms.uSampler2 = backgroundTexture;
+}
 function init(s) {
+    linecharts = [];
     style_flag = s;
     let sliderInfo = [];
     let scale_para = {
@@ -274,6 +310,18 @@ function init(s) {
     app.stage.addChild(container);
     container.addChild(quad);
 
+    initDotTexture(app.renderer);
+    for(let i=-contextRadius;i<=contextRadius;i++) {
+        let line = [];
+        for(let j=-contextRadius;j<=contextRadius;j++) {
+            let linechart = createSingleLineChart(changeCurrentTimeHandle);
+            linechart.visible = false;
+            container.addChild(linechart);
+            line.push(linechart);
+        }
+        linecharts.push(line);
+    } 
+
     maskSpriteContainer = new PIXI.Container();
     container.addChild(maskSpriteContainer);
     
@@ -291,6 +339,7 @@ function init(s) {
         w = Math.max(contextRadius,Math.min(PARA.table.w-contextRadius-1,w));
         h = Math.max(contextRadius,Math.min(PARA.table.h-contextRadius-1,h));
         updateQuad(h,w);
+        updateLineCharts(h,w);
         if(style_flag=="STEP") {
             updateMaskSprite();
         }
