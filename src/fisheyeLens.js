@@ -1,11 +1,10 @@
 import * as PARA from "./parameters.js";
 import {createBackgroundTexture,createLineChartsTexture,initSliders,clearSliders} from "./utils.js";
 
-let focal = {'h':1,'w':1};
 let distort = {'h':25,'w':25};
 let focusPos = {'h':-1,'w':-1};
 let fisheyeScale = 9;
-let d = 0.001;
+let d = 4;
 let distort_pix = {'h':distort.h*PARA.step_pix.h,'w':distort.w*PARA.step_pix.w};
 let quad,backgroundSprite,linechartsSprite;
 let style_flag;
@@ -81,6 +80,7 @@ function createFisheyeGeometry() {
 };
 function bufferIndex(h,w) {return h*(distort.w+1)+w;};
 function h1(x) {return 1-(d+1)*x/(d*x+1);};
+function h2(x) {return (d+1)*x/(d*x+1);};
 function getPolarPosition(h,w,f) {
     const f_pix = {'h':f['h']*PARA.step_pix.h,'w':f['w']*PARA.step_pix.w};
     let beta_buf = {};
@@ -95,12 +95,22 @@ function getPolarPosition(h,w,f) {
         beta_buf['vertical'] = (w-f.w)/(distort.w-f.w);
     }
     let beta = Math.max(beta_buf['horizontal'],beta_buf['vertical']);
-    let scale = h1(beta);
-    let pos = {
-        'h':h*PARA.step_pix.h+ scale*(h*PARA.step_pix.h-f_pix['h']),
-        'w':w*PARA.step_pix.w+ scale*(w*PARA.step_pix.w-f_pix['w'])
-    };
-    return pos;
+    //let scale = h1(beta);
+    //let pos = {
+    //    'h':h*PARA.step_pix.h+ scale*(h*PARA.step_pix.h-f_pix['h']),
+    //    'w':w*PARA.step_pix.w+ scale*(w*PARA.step_pix.w-f_pix['w'])
+    //};
+    let scale = h2(beta);
+    let pos_pix;
+    if(beta==0) {
+        pos_pix = {'h':h*PARA.step_pix.h,'w':w*PARA.step_pix.w}; 
+    } else {
+        pos_pix = {
+            'h':(f.h+ scale*(h-f.h)/beta)*PARA.step_pix.h,
+            'w':(f.w+ scale*(w-f.w)/beta)*PARA.step_pix.w
+        };
+    }
+    return pos_pix;
 }
 function getFocusInQuad(s,h,w) {
     const f = {
@@ -110,24 +120,24 @@ function getFocusInQuad(s,h,w) {
     if(s==="OUTSIDE") {
         return f;
     }
-    const frame = {'h':(distort.h-focal.h)/2,'w':(distort.w-focal.w)/2}; 
+    const frame = {'h':(distort.h)/2,'w':(distort.w)/2}; 
     const lensOrigin = {
         'h':Math.min(PARA.table.h-distort.h+1,Math.max(0,h-Math.floor(distort.h/2))),
         'w':Math.min(PARA.table.w-distort.w+1,Math.max(0,w-Math.floor(distort.w/2)))
     };
-    if(w<=frame.w) {
-        f['w'] = w-lensOrigin.w;
-    } else if (w>=PARA.table.w-frame.w-1) {
-        f['w'] = w-lensOrigin.w+1;
+    f.w = w-lensOrigin.w;
+    f.h = h-lensOrigin.h;
+    if(f.w==0) {
+    } else if(f.w==distort.w-2) {
+        f.w+=1;
     } else {
-        f['w'] = distort.w/2;
+        f.w+=0.5
     }
-    if(h<=frame.h) {
-        f['h'] = h-lensOrigin.h;
-    } else if(h>=PARA.table.h-frame.h-1) {
-        f['h'] = h-lensOrigin.h+1;
+    if(f.h==0) {
+    } else if(f.h==distort.h-2) {
+        f.h+=1;
     } else {
-        f['h'] = distort.h/2;
+        f.h+=0.5;
     }
     return f;
 }
@@ -190,24 +200,7 @@ function updateQuad_outside(h,w) {
     quad.x = lensOrigin.w * PARA.step_pix.w;
     quad.y = lensOrigin.h * PARA.step_pix.h;
 }
-function updateLinechartsSprite(h,w) {
-    let frameWidth = (distort.w-focal.w)/2;
-    let frameHeight = (distort.h-focal.h)/2;
-    w = Math.max(frameWidth,Math.min(w,PARA.table.w-frameWidth-1));
-    h = Math.max(frameHeight,Math.min(h,PARA.table.h-frameHeight-1));
-    const focalOrigin = [(distort.w-focal.w*fisheyeScale)/2*PARA.step_pix.w,(distort.h-focal.w*fisheyeScale)/2*PARA.step_pix.h];
-    
-    let startW = w-Math.floor(distort.w/2);
-    let startH = h-Math.floor(distort.h/2);
-    let innerW = w-Math.floor(focal.w/2);
-    let innerH = h-Math.floor(focal.h/2);
-    let linechartsTexture = createLineChartsTexture(PARA.step_pix.h*fisheyeScale,PARA.step_pix.w*fisheyeScale,innerH,innerW,innerH+focal.h-1,innerW+focal.w-1);
-    linechartsSprite.texture = linechartsTexture;
-    linechartsSprite.x = startW*PARA.step_pix.w+focalOrigin[0];
-    linechartsSprite.y = startH*PARA.step_pix.h+focalOrigin[1];
-    linechartsSprite.h=h;
-    linechartsSprite.w = w;
-};
+
 function distort_sliderHandle() {
     let text = document.getElementById("distort-text");
     let slider = document.getElementById("distort");
@@ -236,6 +229,44 @@ function d_sliderHandle() {
     }
 };
 let app;
+let container;
+function bodyListener(evt) {
+    const canvas = document.createElement("canvas");
+    const rect = canvas.getBoundingClientRect();
+    const mouseOnCanvas = {'h':evt.clientY-rect.top,'w':evt.clientX-rect.left};
+    let w = Math.floor(mouseOnCanvas.w/PARA.step_pix.w);
+    let h = Math.floor(mouseOnCanvas.h/PARA.step_pix.h);
+
+    if(w<0||h<0||w>=PARA.table.w||h>=PARA.table.h) {
+        return;
+    }
+    w = Math.max(0,Math.min(PARA.table.w-1,w)); 
+    h = Math.max(0,Math.min(PARA.table.h-1,h)); 
+    if((focusPos.h>=0&&focusPos.w>=0)&&(Math.abs(h-focusPos.h)<=Math.floor(distort.h/2))&&(Math.abs(w-focusPos.w)<=Math.floor(distort.w/2))) {
+        const lensOrigin = {};
+        if(style_flag==="INSIDE") {
+            lensOrigin.h = Math.min(PARA.table.h-distort.h+1,Math.max(0,focusPos.h-Math.floor(distort.h/2)));
+            lensOrigin.w = Math.min(PARA.table.w-distort.w+1,Math.max(0,focusPos.w-Math.floor(distort.w/2)));
+        } else if(style_flag==="OUTSIDE") {
+            lensOrigin.h=focusPos.h-Math.floor(distort.h/2);
+            lensOrigin.w=focusPos.w-Math.floor(distort.w/2);
+        }
+
+        let mouselocal = {
+            'h':mouseOnCanvas.h-lensOrigin.h*PARA.step_pix.h,
+            'w':mouseOnCanvas.w-lensOrigin.w*PARA.step_pix.w
+        };
+        let pos = searchMousePosition(mouselocal); 
+        w = pos.w+lensOrigin.w;
+        h = pos.h+lensOrigin.h;
+    }
+    if(style_flag==="INSIDE") {
+        updateQuad_inside(h,w);
+    } else if (style_flag==="OUTSIDE") {
+        updateQuad_outside(h,w); 
+    }
+}
+
 function init(s) {
     style_flag = s;
     let sliderInfo = [];
@@ -248,8 +279,8 @@ function init(s) {
     };
     sliderInfo.push(distort_para);
     let d_para = {
-        "defaultValue":1,
-        "max":10,
+        "defaultValue":4,
+        "max":8,
         "min":1,
         "id":"d",
         "oninputHandle":d_sliderHandle
@@ -273,13 +304,6 @@ function init(s) {
     backgroundSprite.x=0;
     backgroundSprite.y=0;
     
-    //line chart sprite
-    linechartsSprite = new PIXI.Sprite();
-    linechartsSprite.scale.x=1/PARA.linechartsTextureScale;
-    linechartsSprite.scale.y=1/PARA.linechartsTextureScale;
-    linechartsSprite.h = Math.floor(distort.h/2);
-    linechartsSprite.w = Math.floor(distort.w/2);
-
     const uniforms = {
         uSampler2: backgroundTexture,
     };
@@ -302,43 +326,7 @@ function init(s) {
 
     container.addChild(backgroundSprite);
     container.addChild(quad);
-    canvas.addEventListener('mousemove',function(evt) {
-        const rect = canvas.getBoundingClientRect();
-        const mouseOnCanvas = {'h':evt.clientY-rect.top-container.y,'w':evt.clientX-rect.left-container.x};
-        let w = Math.floor(mouseOnCanvas.w/PARA.step_pix.w);
-        let h = Math.floor(mouseOnCanvas.h/PARA.step_pix.h);
-
-        if(w<0||h<0||w>=PARA.table.w||h>=PARA.table.h) {
-            return;
-        }
-        w = Math.max(0,Math.min(PARA.table.w-1,w)); 
-        h = Math.max(0,Math.min(PARA.table.h-1,h)); 
-        if((focusPos.h>=0&&focusPos.w>=0)&&(Math.abs(h-focusPos.h)<=Math.floor(distort.h/2))&&(Math.abs(w-focusPos.w)<=Math.floor(distort.w/2))) {
-            const lensOrigin = {};
-            if(s==="INSIDE") {
-                lensOrigin.h = Math.min(PARA.table.h-distort.h+1,Math.max(0,focusPos.h-Math.floor(distort.h/2)));
-                lensOrigin.w = Math.min(PARA.table.w-distort.w+1,Math.max(0,focusPos.w-Math.floor(distort.w/2)));
-            } else if(s==="OUTSIDE") {
-                lensOrigin.h=focusPos.h-Math.floor(distort.h/2);
-                lensOrigin.w=focusPos.w-Math.floor(distort.w/2);
-            }
-            
-            let mouselocal = {
-                'h':mouseOnCanvas.h-lensOrigin.h*PARA.step_pix.h,
-                'w':mouseOnCanvas.w-lensOrigin.w*PARA.step_pix.w
-            };
-            let pos = searchMousePosition(mouselocal); 
-            w = pos.w+lensOrigin.w;
-            h = pos.h+lensOrigin.h;
-        }
-        if(s==="INSIDE") {
-            updateQuad_inside(h,w);
-        } else if (s==="OUTSIDE") {
-            updateQuad_outside(h,w); 
-        }
-        //updateLinechartsSprite(h,w);
-    });
-    //container.addChild(linechartsSprite);
+    document.body.addEventListener('mousemove',bodyListener);
 }
 export function loadFisheyeLens_inside() {
     init("INSIDE");
