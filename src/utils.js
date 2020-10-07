@@ -204,6 +204,12 @@ export function createGridGeometry(h,w) {
         .addIndex(index_list);
     return geometry;
 }
+export function time_sliderHandle() {
+    let text = document.getElementById("currentTime-text");
+    let slider = document.getElementById("currentTime");
+    text.innerHTML = slider.value;
+    currentTime.setCurrent = Number(slider.value);
+}
 export function initSliders(info) {
     let sliderContainer = document.getElementById("sliderContainer");
     for(let i=0;i<info.length;i++) {

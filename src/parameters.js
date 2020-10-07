@@ -1,5 +1,5 @@
 //color
-export const backgroundColor = 0x707B7C;
+export const backgroundColor = 0xF5F5F5;
 export const headColor = 0x85C1E9; 
 export const nodeColor = 0x1ABC9C;
 export const selectColor = 0xE74C3C;

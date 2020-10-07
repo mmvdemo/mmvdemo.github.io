@@ -1,5 +1,5 @@
 import * as PARA from "./parameters.js";
-import {createGridGeometry,createBackgroundTexture,initSliders,clearSliders} from "./utils.js";
+import {time_sliderHandle,createGridGeometry,createBackgroundTexture,initSliders,clearSliders} from "./utils.js";
 import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./linechart.js";
 let d=10;
 let focusPos = {'w':-1,'h':-1};
@@ -82,7 +82,7 @@ function updateQuad(h,w) {
 function initLinecharts() {
     initSingleLinechart(0,0); 
 }
-function updateLineCharts(h,w) {
+function updateLinecharts(h,w) {
     const buffer = quad.geometry.getBuffer('aVertexPosition');
     let grid_pix = {
         'h':buffer.data[2*bufferIndex(h+1,w)+1]-buffer.data[2*bufferIndex(h,w)+1],
@@ -112,17 +112,31 @@ function d_sliderHandle() {
     updateQuad(focusPos.h,focusPos.w);
     destroyLinecharts();
     initLinecharts();
-    updateLineCharts(focusPos.h,focusPos.w);
+    updateLinecharts(focusPos.h,focusPos.w);
 };
-function time_sliderHandle() {
-    let text = document.getElementById("currentTime-text");
-    let slider = document.getElementById("currentTime");
-    text.innerHTML = slider.value;
-    currentTime.setCurrent = Number(slider.value);
-}
+
 function changeCurrentTimeHandle() {
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
     quad.shader.uniforms.uSampler2 = backgroundTexture; 
+}
+function bodyListener(evt) {
+    const canvas = document.getElementById("canvas");
+    const rect = canvas.getBoundingClientRect();
+    const mouseOnCanvas = {'h':evt.clientY-rect.top,'w':evt.clientX-rect.left};
+    let h,w;
+    if(focusPos.h<0 || focusPos.w<0) {
+        w = Math.floor(mouseOnCanvas.w/PARA.step_pix.w);
+        h = Math.floor(mouseOnCanvas.h/PARA.step_pix.h);
+    } else {
+        w = binSearch(mouseOnCanvas.w,'w',0,PARA.table.w);
+        h = binSearch(mouseOnCanvas.h,'h',0,PARA.table.h);
+    }
+    //console.log(`h=${h},w=${w}`);
+    if(w<0||h<0||w>=PARA.table.w+1||h>=PARA.table.h+1) {
+        return;
+    }
+    updateQuad(h,w);
+    updateLinecharts(h,w);
 }
 
 export function loadCartesianLens() {
@@ -134,6 +148,7 @@ export function loadCartesianLens() {
         "id":"d",
         "oninputHandle":d_sliderHandle
     };
+    sliderInfo.push(d_para);
     let time_para = {
         "defaultValue":currentTime.getCurrent,
         "max":timeEnd,
@@ -141,7 +156,6 @@ export function loadCartesianLens() {
         "id":"currentTime",
         "oninputHandle":time_sliderHandle
     };
-    sliderInfo.push(d_para);
     sliderInfo.push(time_para);
     initSliders(sliderInfo);
 
@@ -159,7 +173,6 @@ export function loadCartesianLens() {
     let canvas = document.createElement("canvas");
     canvas.id = "canvas";
     canvas.style.position = "absolute";
-    const linechartsContainer = document.getElementById("linechartsContainer");
     document.body.appendChild(canvas);
     app = new PIXI.Application({width:PARA.stage_pix.w, height:PARA.stage_pix.h, antialias:true, view:canvas});
     app.renderer.backgroundColor = PARA.backgroundColor;
@@ -169,26 +182,10 @@ export function loadCartesianLens() {
     initLinecharts();
     currentTime.setHandle = changeCurrentTimeHandle;
 
-    document.body.addEventListener('mousemove',function(evt) {
-        const rect = canvas.getBoundingClientRect();
-        const mouseOnCanvas = {'h':evt.clientY-rect.top-container.y,'w':evt.clientX-rect.left-container.x};
-        let h,w;
-        if(focusPos.h<0 || focusPos.w<0) {
-            w = Math.floor(mouseOnCanvas.w/PARA.step_pix.w);
-            h = Math.floor(mouseOnCanvas.h/PARA.step_pix.h);
-        } else {
-            w = binSearch(mouseOnCanvas.w,'w',0,PARA.table.w);
-            h = binSearch(mouseOnCanvas.h,'h',0,PARA.table.h);
-        }
-        //console.log(`h=${h},w=${w}`);
-        if(w<0||h<0||w>=PARA.table.w+1||h>=PARA.table.h+1) {
-            return;
-        }
-        updateQuad(h,w);
-        updateLineCharts(h,w);
-    });
+    document.body.addEventListener('mousemove',bodyListener);
 }
 export function destroyCartesianLens() {
+    document.body.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
     destroyLinecharts();

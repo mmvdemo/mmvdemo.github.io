@@ -101,9 +101,9 @@ export function updateSingleLinechart(h,w,idx,grid_pix,pos_pix) {
 export function destroyLinecharts() {
     linechartSVG = {};
     let linechartDiv = document.getElementsByClassName("linechart"); 
-    console.log(linechartDiv.length);
-    for(let i=0;i<linechartDiv.length;i++) {
-        document.body.removeChild(linechartDiv[i]);
+    while(document.getElementsByClassName("linechart").length>0) {
+        linechartDiv = document.getElementsByClassName("linechart");
+        document.body.removeChild(linechartDiv[0]);
     }
 }
 

@@ -1,5 +1,6 @@
 import * as PARA from "./parameters.js";
-import {initDotTexture,updateSingleLineChart,createSingleLineChart,createGridGeometry,createBackgroundTexture,initSliders,clearSliders} from "./utils.js";
+import {time_sliderHandle,createGridGeometry,createBackgroundTexture,initSliders,clearSliders} from "./utils.js";
+import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./linechart.js";
 // for table lens
 let focalScale = 10;
 let contextRadius=1;
@@ -209,12 +210,24 @@ function updateMaskSprite() {
         sprite.scale.set(len.hori_right.w,len.hori_right.h);
     }
 }
-function updateLineCharts(h,w) {
+function initLinecharts() {
+    //while(document.getElementsByClassName("linechart").length>0) {
+    //    console.log("waiting");
+    //}
+    for(let i=0;i<=2*contextRadius;i++) {
+        for(let j=0;j<=2*contextRadius;j++) {
+            initSingleLinechart(i,j); 
+        }
+    }
+}
+function updateLinecharts(h,w) {
     const buffer = quad.geometry.getBuffer('aVertexPosition');
     let grid_pix = {
         'h':buffer.data[2*bufferIndex(h+1,w)+1]-buffer.data[2*bufferIndex(h,w)+1],
         'w':buffer.data[2*bufferIndex(h,w+1)]-buffer.data[2*bufferIndex(h,w)]
     };
+    const canvas = document.getElementById("canvas");
+    const rect = canvas.getBoundingClientRect();
     for(let i=0;i<2*contextRadius+1;i++) {
         for(let j=0;j<2*contextRadius+1;j++) {
             let pos = {'h':h-contextRadius+i,'w':w-contextRadius+j};
@@ -222,8 +235,9 @@ function updateLineCharts(h,w) {
                 'h':buffer.data[2*bufferIndex(pos.h,pos.w)+1],
                 'w':buffer.data[2*bufferIndex(pos.h,pos.w)]
             };
-            updateSingleLineChart(linecharts[i][j],grid_pix,pos);
-            linecharts[i][j].position.set(pos_pix.w,pos_pix.h);
+            pos_pix.h += rect.top;
+            pos_pix.w += rect.left;
+            updateSingleLinechart(i,j,pos,grid_pix,pos_pix);
         }
     }
 }
@@ -234,7 +248,9 @@ function scale_sliderHandle() {
     
     focalScale = Number(slider.value);
     updateQuad(focusPos.h,focusPos.w);
-    updateLineCharts(focusPos.h,focusPos.w);
+    destroyLinecharts();
+    initLinecharts();
+    updateLinecharts(focusPos.h,focusPos.w);
     if(style_flag=="STEP") {
         updateMaskSprite();
     }
@@ -244,20 +260,11 @@ function contextRadius_sliderHandle() {
     let slider = document.getElementById("contextRadius");
     text.innerHTML = slider.value;
 
-    let newContextRadius = Number(slider.value);
+    contextRadius = Number(slider.value);
     updateQuad(focusPos.h,focusPos.w);
-    for(let i=0;i<2*contextRadius+1;i++) {
-        for(let j=0;j<2*contextRadius+1;j++) {
-            let pos = {'h':focusPos.h-contextRadius+i,'w':focusPos.w-contextRadius+j};
-            if(Math.abs(pos.h-focusPos.h)>newContextRadius || Math.abs(pos.w-focusPos.w)>newContextRadius) {
-                linecharts[i][j].visible = false;
-            } else {
-                linecharts[i][j].visible = true;
-            }
-        }
-    }
-    contextRadius = newContextRadius;
-    updateLineCharts(focusPos.h,focusPos.w);
+    destroyLinecharts();
+    initLinecharts();
+    updateLinecharts(focusPos.h,focusPos.w);
     if(style_flag=="STEP") {
         initMaskSprite();
     }
@@ -265,6 +272,23 @@ function contextRadius_sliderHandle() {
 function changeCurrentTimeHandle() {
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1); 
     quad.shader.uniforms.uSampler2 = backgroundTexture;
+}
+function bodyListener(evt) {
+    const canvas = document.getElementById("canvas");
+    const rect = canvas.getBoundingClientRect();
+    const mouseOnCanvas = {'h':evt.clientY-rect.top,'w':evt.clientX-rect.left};
+    //let w = Math.floor(mouseOnCanvas.w/PARA.step_pix.w);
+    //let h = Math.floor(mouseOnCanvas.h/PARA.step_pix.h);
+    let w = binSearch(mouseOnCanvas.w,'w',0,PARA.table.w);
+    let h= binSearch(mouseOnCanvas.h,'h',0,PARA.table.h);
+    console.log(`h=${h},w=${w}`);
+    w = Math.max(contextRadius,Math.min(PARA.table.w-contextRadius-1,w));
+    h = Math.max(contextRadius,Math.min(PARA.table.h-contextRadius-1,h));
+    updateQuad(h,w);
+    updateLinecharts(h,w);
+    if(style_flag=="STEP") {
+        updateMaskSprite();
+    }
 }
 function init(s) {
     style_flag = s;
@@ -285,6 +309,14 @@ function init(s) {
         "oninputHandle":contextRadius_sliderHandle
     };
     sliderInfo.push(contextRadius_para);
+    let time_para = {
+        "defaultValue":currentTime.getCurrent,
+        "max":timeEnd,
+        "min":timeStart,
+        "id":"currentTime",
+        "oninputHandle":time_sliderHandle
+    };
+    sliderInfo.push(time_para);
     initSliders(sliderInfo);
 
     focalScale = scale_para.defaultValue;
@@ -303,25 +335,16 @@ function init(s) {
     container.interactive = true;
     //let canvas = document.getElementById("mycanvas");
     let canvas = document.createElement("canvas");
+    canvas.id = "canvas";
+    canvas.style.position = "absolute";
     document.body.appendChild(canvas);
     app = new PIXI.Application({width:PARA.stage_pix.w, height:PARA.stage_pix.h, antialias:true, view:canvas});
     app.renderer.backgroundColor = PARA.backgroundColor;
     app.stage.interactive = true;
     app.stage.addChild(container);
     container.addChild(quad);
-
-    initDotTexture(app.renderer);
-    linecharts = [];
-    for(let i=-contextRadius;i<=contextRadius;i++) {
-        let line = [];
-        for(let j=-contextRadius;j<=contextRadius;j++) {
-            let linechart = createSingleLineChart(changeCurrentTimeHandle);
-            linechart.visible = false;
-            container.addChild(linechart);
-            line.push(linechart);
-        }
-        linecharts.push(line);
-    }
+    initLinecharts();
+    currentTime.setHandle = changeCurrentTimeHandle;
 
     maskSpriteContainer = new PIXI.Container();
     container.addChild(maskSpriteContainer);
@@ -329,22 +352,7 @@ function init(s) {
     if(style_flag=="STEP") {
         initMaskSprite();
     }
-    canvas.addEventListener('mousemove',function(evt) {
-        const rect = canvas.getBoundingClientRect();
-        const mouseOnCanvas = {'h':evt.clientY-rect.top-container.y,'w':evt.clientX-rect.left-container.x};
-        //let w = Math.floor(mouseOnCanvas.w/PARA.step_pix.w);
-        //let h = Math.floor(mouseOnCanvas.h/PARA.step_pix.h);
-        let w = binSearch(mouseOnCanvas.w,'w',0,PARA.table.w);
-        let h= binSearch(mouseOnCanvas.h,'h',0,PARA.table.h);
-        console.log(`h=${h},w=${w}`);
-        w = Math.max(contextRadius,Math.min(PARA.table.w-contextRadius-1,w));
-        h = Math.max(contextRadius,Math.min(PARA.table.h-contextRadius-1,h));
-        updateQuad(h,w);
-        updateLineCharts(h,w);
-        if(style_flag=="STEP") {
-            updateMaskSprite();
-        }
-    });
+    canvas.addEventListener('mousemove',bodyListener);
 }
 export function loadTableLens_stretch() {
     init("STRETCH"); 
@@ -353,10 +361,14 @@ export function loadTableLens_step() {
     init("STEP"); 
 }
 export function destroyTableLens_stretch() {
+    document.body.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
+    destroyLinecharts();
 }
 export function destroyTableLens_step() {
+    document.body.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
+    destroyLinecharts();
 }
