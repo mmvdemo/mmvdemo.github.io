@@ -5,7 +5,6 @@ let d=10;
 let focusPos = {'w':-1,'h':-1};
 let quad;
 let app;
-let linechart;
 const vertexSrc = `
 
     precision mediump float;

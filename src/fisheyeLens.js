@@ -1,12 +1,14 @@
 import * as PARA from "./parameters.js";
-import {createBackgroundTexture,createLineChartsTexture,initSliders,clearSliders} from "./utils.js";
+import {createBackgroundTexture,time_sliderHandle,initSliders,clearSliders} from "./utils.js";
+import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./linechart.js";
 
 let distort = {'h':25,'w':25};
 let focusPos = {'h':-1,'w':-1};
-let fisheyeScale = 9;
 let d = 4;
 let distort_pix = {'h':distort.h*PARA.step_pix.h,'w':distort.w*PARA.step_pix.w};
-let quad,backgroundSprite,linechartsSprite;
+let quad,backgroundSprite;
+let app;
+let container;
 let style_flag;
 
 const vertexSrc = `
@@ -121,10 +123,7 @@ function getFocusInQuad(s,h,w) {
         return f;
     }
     const frame = {'h':(distort.h)/2,'w':(distort.w)/2}; 
-    const lensOrigin = {
-        'h':Math.min(PARA.table.h-distort.h+1,Math.max(0,h-Math.floor(distort.h/2))),
-        'w':Math.min(PARA.table.w-distort.w+1,Math.max(0,w-Math.floor(distort.w/2)))
-    };
+    const lensOrigin = getLensOrigin(s,h,w);
     f.w = w-lensOrigin.w;
     f.h = h-lensOrigin.h;
     if(f.w==0) {
@@ -140,6 +139,23 @@ function getFocusInQuad(s,h,w) {
         f.h+=0.5;
     }
     return f;
+}
+function getLensOrigin(s,h,w) {
+    let lensOrigin;
+    if(s==="INSIDE") {
+        lensOrigin = {
+            'h':Math.min(PARA.table.h-distort.h+1,Math.max(0,h-Math.floor(distort.h/2))),
+            'w':Math.min(PARA.table.w-distort.w+1,Math.max(0,w-Math.floor(distort.w/2)))
+        }; 
+    } else if(s==="OUTSIDE") {
+        lensOrigin = {
+            'h':h-Math.floor(distort.h/2),
+            'w':w-Math.floor(distort.w/2)
+        };
+    } else {
+        lensOrigin = {};
+    }
+    return lensOrigin;
 }
 function searchMousePosition(mouselocal) {
     let pos = {'h':-1,'w':-1};
@@ -169,10 +185,7 @@ function searchMousePosition(mouselocal) {
 function updateQuad_inside(h,w) {
     focusPos.h=h;
     focusPos.w=w;
-    const lensOrigin = {
-        'h':Math.min(PARA.table.h-distort.h+1,Math.max(0,h-Math.floor(distort.h/2))),
-        'w':Math.min(PARA.table.w-distort.w+1,Math.max(0,w-Math.floor(distort.w/2)))
-    };
+    const lensOrigin = getLensOrigin("INSIDE",h,w);;
     const bgTexture = createBackgroundTexture(lensOrigin.h,lensOrigin.w,lensOrigin.h+distort.h-1,lensOrigin.w+distort.w-1);
     quad.shader.uniforms.uSampler2 = bgTexture;
     quad.x = lensOrigin.w * PARA.step_pix.w;
@@ -191,16 +204,36 @@ function updateQuad_inside(h,w) {
 function updateQuad_outside(h,w) {
     focusPos.h=h;
     focusPos.w=w;
-    const lensOrigin = {
-        'h':h-Math.floor(distort.h/2),
-        'w':w-Math.floor(distort.w/2)
-    };
+    const lensOrigin =getLensOrigin("OUTSIDE",h,w);
     const bgTexture = createBackgroundTexture(lensOrigin.h,lensOrigin.w,lensOrigin.h+distort.h-1,lensOrigin.w+distort.w-1);
     quad.shader.uniforms.uSampler2 = bgTexture;
     quad.x = lensOrigin.w * PARA.step_pix.w;
     quad.y = lensOrigin.h * PARA.step_pix.h;
 }
-
+function initLinecharts() {
+    initSingleLinechart(0,0);
+}
+function updateLinecharts(h,w) {
+    const focus = getFocusInQuad("INSIDE",h,w);
+    focus.h = Math.floor(focus.h);
+    focus.w = Math.floor(focus.w);
+    const buffer = quad.geometry.getBuffer('aVertexPosition');
+    let grid_pix = {
+        'h':buffer.data[2*bufferIndex(focus.h+1,focus.w)+1]-buffer.data[2*bufferIndex(focus.h,focus.w)+1],
+        'w':buffer.data[2*bufferIndex(focus.h,focus.w+1)]-buffer.data[2*bufferIndex(focus.h,focus.w)]
+    };
+    let pos = {'h':h,'w':w};
+    let pos_pix = {
+        'h':buffer.data[2*bufferIndex(focus.h,focus.w)+1],
+        'w':buffer.data[2*bufferIndex(focus.h,focus.w)]
+    };
+    const lensOrigin = getLensOrigin(style_flag,h,w);
+    const canvas = document.getElementById("canvas");
+    const rect = canvas.getBoundingClientRect();
+    pos_pix.h += lensOrigin.h*PARA.step_pix.h+rect.top+container.y;
+    pos_pix.w+=lensOrigin.w*PARA.step_pix.w+rect.left+container.x;
+    updateSingleLinechart(0,0,pos,grid_pix,pos_pix);
+}
 function distort_sliderHandle() {
     let text = document.getElementById("distort-text");
     let slider = document.getElementById("distort");
@@ -214,6 +247,9 @@ function distort_sliderHandle() {
     } else if(style_flag==="OUTSIDE") {
         updateQuad_outside(focusPos.h,focusPos.w);
     }
+    destroyLinecharts();
+    initLinecharts();
+    updateLinecharts(focusPos.h,focusPos.w);
 };
 function d_sliderHandle() {
     let text = document.getElementById("d-text");
@@ -227,11 +263,24 @@ function d_sliderHandle() {
     } else if(style_flag==="OUTSIDE") {
         updateQuad_outside(focusPos.h,focusPos.w);
     }
+    destroyLinecharts();
+    initLinecharts();
+    updateLinecharts(focusPos.h,focusPos.w);
 };
-let app;
-let container;
+function changeCurrentTimeHandle() {
+    const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
+    backgroundSprite.texture = backgroundTexture;
+    if(style_flag==="INSIDE") {
+        updateQuad_inside(focusPos.h,focusPos.w);
+    } else if(style_flag==="OUTSIDE") {
+        updateQuad_outside(focusPos.h,focusPos.w);
+    }
+    destroyLinecharts();
+    initLinecharts();
+    updateLinecharts(focusPos.h,focusPos.w);
+}
 function bodyListener(evt) {
-    const canvas = document.createElement("canvas");
+    const canvas = document.getElementById("canvas");
     const rect = canvas.getBoundingClientRect();
     const mouseOnCanvas = {'h':evt.clientY-rect.top,'w':evt.clientX-rect.left};
     let w = Math.floor(mouseOnCanvas.w/PARA.step_pix.w);
@@ -243,14 +292,7 @@ function bodyListener(evt) {
     w = Math.max(0,Math.min(PARA.table.w-1,w)); 
     h = Math.max(0,Math.min(PARA.table.h-1,h)); 
     if((focusPos.h>=0&&focusPos.w>=0)&&(Math.abs(h-focusPos.h)<=Math.floor(distort.h/2))&&(Math.abs(w-focusPos.w)<=Math.floor(distort.w/2))) {
-        const lensOrigin = {};
-        if(style_flag==="INSIDE") {
-            lensOrigin.h = Math.min(PARA.table.h-distort.h+1,Math.max(0,focusPos.h-Math.floor(distort.h/2)));
-            lensOrigin.w = Math.min(PARA.table.w-distort.w+1,Math.max(0,focusPos.w-Math.floor(distort.w/2)));
-        } else if(style_flag==="OUTSIDE") {
-            lensOrigin.h=focusPos.h-Math.floor(distort.h/2);
-            lensOrigin.w=focusPos.w-Math.floor(distort.w/2);
-        }
+        const lensOrigin = getLensOrigin(style_flag,focusPos.h,focusPos.w);
 
         let mouselocal = {
             'h':mouseOnCanvas.h-lensOrigin.h*PARA.step_pix.h,
@@ -265,6 +307,7 @@ function bodyListener(evt) {
     } else if (style_flag==="OUTSIDE") {
         updateQuad_outside(h,w); 
     }
+    updateLinecharts(h,w);
 }
 
 function init(s) {
@@ -280,12 +323,20 @@ function init(s) {
     sliderInfo.push(distort_para);
     let d_para = {
         "defaultValue":4,
-        "max":8,
+        "max":16,
         "min":1,
         "id":"d",
         "oninputHandle":d_sliderHandle
     };
     sliderInfo.push(d_para);
+    let time_para = {
+        "defaultValue":currentTime.getCurrent,
+        "max":timeEnd,
+        "min":timeStart,
+        "id":"currentTime",
+        "oninputHandle":time_sliderHandle
+    };
+    sliderInfo.push(time_para);
     initSliders(sliderInfo);
 
     distort_pix = {'h':distort.h*PARA.step_pix.h,'w':distort.w*PARA.step_pix.w};
@@ -313,11 +364,13 @@ function init(s) {
     quad.position.set(0,0);
     quad.interactive = true;
    
-    const container = new PIXI.Container();
+    container = new PIXI.Container();
     container.x = EP/2;
     container.y=EP/2;
     //let canvas = document.getElementById("mycanvas");
-    let canvas = document.createElement("canvas");
+    const canvas = document.createElement("canvas");
+    canvas.id = "canvas";
+    canvas.style.position = "absolute";
     document.body.appendChild(canvas);
     app = new PIXI.Application({width:PARA.stage_pix.w+EP, height:PARA.stage_pix.h+EP, antialias:true, view:canvas});
     app.renderer.backgroundColor = PARA.backgroundColor;
@@ -326,6 +379,10 @@ function init(s) {
 
     container.addChild(backgroundSprite);
     container.addChild(quad);
+
+    initLinecharts();
+    currentTime.setHandle = changeCurrentTimeHandle;
+
     document.body.addEventListener('mousemove',bodyListener);
 }
 export function loadFisheyeLens_inside() {
@@ -335,10 +392,12 @@ export function loadFisheyeLens_outside() {
     init("OUTSIDE");
 }
 export function destroyFisheyeLens_inside() {
+    document.body.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
 }
 export function destroyFisheyeLens_outside() {
+    document.body.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
 }
