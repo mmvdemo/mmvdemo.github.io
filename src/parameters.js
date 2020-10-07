@@ -10,8 +10,8 @@ export const stage_pix = {'h':800,'w':800};
 export const table = {'h':nodeCnt,'w':nodeCnt};
 export const step_pix = {'h':stage_pix.h/table.h,'w':stage_pix.w/table.w};
 export const linechartsTextureScale = 1;
-export const chartRatio=0.8;
-export const nodeRadius =5;
+export const chartMargin=25;
+export const nodeRadius =3;
 export const EP = 100;
 export function loadParameters() {
     table.h=nodeCnt;

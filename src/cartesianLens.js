@@ -1,5 +1,6 @@
 import * as PARA from "./parameters.js";
-import {initDotTexture,updateSingleLineChart,createSingleLineChart,createGridGeometry,createBackgroundTexture,initSliders,clearSliders} from "./utils.js";
+import {createGridGeometry,createBackgroundTexture,initSliders,clearSliders} from "./utils.js";
+import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./linechart.js";
 let d=10;
 let focusPos = {'w':-1,'h':-1};
 let quad;
@@ -78,6 +79,9 @@ function updateQuad(h,w) {
     }
     buffer.update();
 };
+function initLinecharts() {
+    initSingleLinechart(0,0); 
+}
 function updateLineCharts(h,w) {
     const buffer = quad.geometry.getBuffer('aVertexPosition');
     let grid_pix = {
@@ -89,9 +93,14 @@ function updateLineCharts(h,w) {
         'h':buffer.data[2*bufferIndex(h,w)+1],
         'w':buffer.data[2*bufferIndex(h,w)]
     };
-    updateSingleLineChart(linechart,grid_pix,pos);
-    linechart.position.set(pos_pix.w,pos_pix.h);
-    linechart.visible = true;
+   
+    const canvas = document.getElementById("canvas");
+    const rect = canvas.getBoundingClientRect();
+
+    pos_pix.h += rect.top;
+    pos_pix.w += rect.left;
+
+    updateSingleLinechart(0,0,pos,grid_pix,pos_pix);
 }
 
 function d_sliderHandle() {
@@ -101,12 +110,21 @@ function d_sliderHandle() {
 
     d = Number(slider.value);
     updateQuad(focusPos.h,focusPos.w);
+    destroyLinecharts();
+    initLinecharts();
     updateLineCharts(focusPos.h,focusPos.w);
 };
+function time_sliderHandle() {
+    let text = document.getElementById("currentTime-text");
+    let slider = document.getElementById("currentTime");
+    text.innerHTML = slider.value;
+    currentTime.setCurrent = Number(slider.value);
+}
 function changeCurrentTimeHandle() {
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
     quad.shader.uniforms.uSampler2 = backgroundTexture; 
 }
+
 export function loadCartesianLens() {
     let sliderInfo = [];
     let d_para = {
@@ -116,7 +134,15 @@ export function loadCartesianLens() {
         "id":"d",
         "oninputHandle":d_sliderHandle
     };
+    let time_para = {
+        "defaultValue":currentTime.getCurrent,
+        "max":timeEnd,
+        "min":timeStart,
+        "id":"currentTime",
+        "oninputHandle":time_sliderHandle
+    };
     sliderInfo.push(d_para);
+    sliderInfo.push(time_para);
     initSliders(sliderInfo);
 
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
@@ -131,19 +157,19 @@ export function loadCartesianLens() {
     const container = new PIXI.Container();
     container.interactive = true;
     let canvas = document.createElement("canvas");
+    canvas.id = "canvas";
+    canvas.style.position = "absolute";
+    const linechartsContainer = document.getElementById("linechartsContainer");
     document.body.appendChild(canvas);
     app = new PIXI.Application({width:PARA.stage_pix.w, height:PARA.stage_pix.h, antialias:true, view:canvas});
     app.renderer.backgroundColor = PARA.backgroundColor;
     app.stage.interactive = true;
     app.stage.addChild(container);
     container.addChild(quad);
+    initLinecharts();
+    currentTime.setHandle = changeCurrentTimeHandle;
 
-    initDotTexture(app.renderer);
-    linechart = createSingleLineChart(changeCurrentTimeHandle);
-    linechart.visible = false;
-    container.addChild(linechart);
-
-    canvas.addEventListener('mousemove',function(evt) {
+    document.body.addEventListener('mousemove',function(evt) {
         const rect = canvas.getBoundingClientRect();
         const mouseOnCanvas = {'h':evt.clientY-rect.top-container.y,'w':evt.clientX-rect.left-container.x};
         let h,w;
@@ -165,4 +191,5 @@ export function loadCartesianLens() {
 export function destroyCartesianLens() {
     app.destroy(true,true);
     clearSliders();
+    destroyLinecharts();
 }

@@ -222,16 +222,6 @@ function updateLineCharts(h,w) {
                 'h':buffer.data[2*bufferIndex(pos.h,pos.w)+1],
                 'w':buffer.data[2*bufferIndex(pos.h,pos.w)]
             };
-            if(pos.h<0 || pos.h>=PARA.table.h) {
-                linecharts[i][j].visible = false;
-                continue;
-            } else if(pos.w<0 || pos.w>=PARA.table.w) {
-                linecharts[i][j].visible = false;
-                continue;
-            } else {
-                console.log("true");
-                linecharts[i][j].visible = true;
-            }
             updateSingleLineChart(linecharts[i][j],grid_pix,pos);
             linecharts[i][j].position.set(pos_pix.w,pos_pix.h);
         }
@@ -254,8 +244,19 @@ function contextRadius_sliderHandle() {
     let slider = document.getElementById("contextRadius");
     text.innerHTML = slider.value;
 
-    contextRadius = Number(slider.value);
+    let newContextRadius = Number(slider.value);
     updateQuad(focusPos.h,focusPos.w);
+    for(let i=0;i<2*contextRadius+1;i++) {
+        for(let j=0;j<2*contextRadius+1;j++) {
+            let pos = {'h':focusPos.h-contextRadius+i,'w':focusPos.w-contextRadius+j};
+            if(Math.abs(pos.h-focusPos.h)>newContextRadius || Math.abs(pos.w-focusPos.w)>newContextRadius) {
+                linecharts[i][j].visible = false;
+            } else {
+                linecharts[i][j].visible = true;
+            }
+        }
+    }
+    contextRadius = newContextRadius;
     updateLineCharts(focusPos.h,focusPos.w);
     if(style_flag=="STEP") {
         initMaskSprite();
@@ -266,7 +267,6 @@ function changeCurrentTimeHandle() {
     quad.shader.uniforms.uSampler2 = backgroundTexture;
 }
 function init(s) {
-    linecharts = [];
     style_flag = s;
     let sliderInfo = [];
     let scale_para = {
@@ -311,6 +311,7 @@ function init(s) {
     container.addChild(quad);
 
     initDotTexture(app.renderer);
+    linecharts = [];
     for(let i=-contextRadius;i<=contextRadius;i++) {
         let line = [];
         for(let j=-contextRadius;j<=contextRadius;j++) {
@@ -320,7 +321,7 @@ function init(s) {
             line.push(linechart);
         }
         linecharts.push(line);
-    } 
+    }
 
     maskSpriteContainer = new PIXI.Container();
     container.addChild(maskSpriteContainer);

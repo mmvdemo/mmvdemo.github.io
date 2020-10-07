@@ -17,7 +17,7 @@ export function createBackgroundTexture(h1,w1,h2,w2) {
             if(i+h1<0||j+w1<0||i+h1>=PARA.table.h||j+w1>=PARA.table.w) {
                 continue;
             }
-            let value = getValue(currentTime,i+h1,j+w1);
+            let value = getValue(currentTime.value,i+h1,j+w1);
             let colorStr = d3.interpolateYlGn(value);
             let color = rgbStrToHex(colorStr);
             let idx = i*width+j;
@@ -30,7 +30,7 @@ export function createBackgroundTexture(h1,w1,h2,w2) {
     const texture = PIXI.Texture.fromBuffer(rgba,width,height);
     return texture;
 }
-function createLineChartsSvg(gridH,gridW,h1,w1,h2,w2) {
+export function createLineChartsSvg(gridH,gridW,h1,w1,h2,w2) {
     gridH = gridH*PARA.linechartsTextureScale;
     gridW = gridW*PARA.linechartsTextureScale;
     const svg = d3.create("svg")
@@ -59,7 +59,7 @@ function createLineChartsSvg(gridH,gridW,h1,w1,h2,w2) {
 
             let dataset = d3.range(timeStart,timeEnd+1).map(function(d) { return {"time":d, "value": getValue(d,i,j) } });
             let stroke = PARA.lineColorDark;
-            if(dataset[currentTime-timeStart].value>0.5) stroke = PARA.lineColorLight;
+            if(dataset[currentTime.value-timeStart].value>0.5) stroke = PARA.lineColorLight;
 
             let chartGroup = svg.append("g")
                                 .attr("transform",`translate(${translateW+originW},${translateH+originH})`)
@@ -130,7 +130,7 @@ export function createSingleLineChart(clickHandle) {
             dot.scale.set(1,1);
         });
         dot.on("click",function(e) {
-            currentTime = this.time;
+            currentTime.value = this.time;
             clickHandle();
         });
         dots.addChild(dot);
