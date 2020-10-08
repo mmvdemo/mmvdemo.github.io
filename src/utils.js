@@ -30,6 +30,44 @@ export function createBackgroundTexture(h1,w1,h2,w2) {
     const texture = PIXI.Texture.fromBuffer(rgba,width,height);
     return texture;
 }
+//export function createBackgroundTexture(h1,w1,h2,w2) {
+//    const width = w2-w1+1;
+//    const height=h2-h1+1;
+//    const rgba = new Float32Array(width*PARA.step_pix.w*height*PARA.step_pix.h*4);
+//    for(let i=0;i<height*PARA.step_pix.h;i++) {
+//        for(let j=0;j<width*PARA.step_pix.w;j++) {
+//            let h = Math.floor(i/PARA.step_pix.h);
+//            let w = Math.floor(j/PARA.step_pix.w);
+//            if(h+h1<0||w+w1<0||h+h1>=PARA.table.h||w+w1>=PARA.table.w) {
+//                continue;
+//            }
+//            let value = getValue(currentTime.value,h+h1,w+w1);
+//            let colorStr = d3.interpolateYlGn(value);
+//            let color = rgbStrToHex(colorStr);
+//            let idx = i*width*PARA.step_pix.w+j;
+//            rgba[idx*4] = (color>>16)/256;
+//            rgba[idx*4+1] = ((color>>8)&((1<<8)-1))/256;
+//            rgba[idx*4+2] = (color&((1<<8)-1))/256;
+//            rgba[idx*4+3] = 1;
+//        }
+//    }
+//    //for(let h=0;h<height;h++) {
+//    //    for(let j=0;j<width*PARA.step_pix.w;j++) {
+//    //        let w = Math.floor(j/PARA.step_pix.w);
+//    //        if(h+h1<0||w+w1<0||h+h1>=PARA.table.h||w+w1>=PARA.table.w) {
+//    //            continue;
+//    //        }
+//    //        let idx = h*PARA.step_pix.h*width*PARA.step_pix.w+j;
+//    //        rgba[idx*4] = (PARA.backgroundColor>>16)/256;
+//    //        rgba[idx*4+1] = ((PARA.backgroundColor>>8)&((1<<8)-1))/256;
+//    //        rgba[idx*4+2] = (PARA.backgroundColor&((1<<8)-1))/256;
+//
+//    //    }
+//    //}
+//       
+//    const texture = PIXI.Texture.fromBuffer(rgba,width*PARA.step_pix.w,height*PARA.step_pix.h);
+//    return texture;
+//}
 export function createLineChartsSvg(gridH,gridW,h1,w1,h2,w2) {
     gridH = gridH*PARA.linechartsTextureScale;
     gridW = gridW*PARA.linechartsTextureScale;

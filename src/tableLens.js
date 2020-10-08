@@ -211,9 +211,6 @@ function updateMaskSprite() {
     }
 }
 function initLinecharts() {
-    //while(document.getElementsByClassName("linechart").length>0) {
-    //    console.log("waiting");
-    //}
     for(let i=0;i<=2*contextRadius;i++) {
         for(let j=0;j<=2*contextRadius;j++) {
             initSingleLinechart(i,j); 
@@ -231,6 +228,7 @@ function updateLinecharts(h,w) {
     for(let i=0;i<2*contextRadius+1;i++) {
         for(let j=0;j<2*contextRadius+1;j++) {
             let pos = {'h':h-contextRadius+i,'w':w-contextRadius+j};
+            if(pos.h<0||pos.w<0||pos.h>=PARA.table.h||pos.w>=PARA.table.w) {continue;}
             let pos_pix = {
                 'h':buffer.data[2*bufferIndex(pos.h,pos.w)+1],
                 'w':buffer.data[2*bufferIndex(pos.h,pos.w)]
@@ -255,12 +253,12 @@ function scale_sliderHandle() {
         updateMaskSprite();
     }
 }
-function contextRadius_sliderHandle() {
-    let text = document.getElementById("contextRadius-text");
-    let slider = document.getElementById("contextRadius");
+function contextLength_sliderHandle() {
+    let text = document.getElementById("contextLength-text");
+    let slider = document.getElementById("contextLength");
     text.innerHTML = slider.value;
 
-    contextRadius = Number(slider.value);
+    contextRadius = Math.floor(Number(slider.value)/2);
     updateQuad(focusPos.h,focusPos.w);
     destroyLinecharts();
     initLinecharts();
@@ -301,14 +299,14 @@ function init(s) {
         "oninputHandle":scale_sliderHandle
     };
     sliderInfo.push(scale_para);
-    let contextRadius_para = {
-        "defaultValue":1,
-        "max":2,
-        "min":0,
-        "id":"contextRadius",
-        "oninputHandle":contextRadius_sliderHandle
+    let contextLength_para = {
+        "defaultValue":contextRadius*2+1,
+        "max":5,
+        "min":1,
+        "id":"contextLength",
+        "oninputHandle":contextLength_sliderHandle
     };
-    sliderInfo.push(contextRadius_para);
+    sliderInfo.push(contextLength_para);
     let time_para = {
         "defaultValue":currentTime.getCurrent,
         "max":timeEnd,
@@ -320,7 +318,7 @@ function init(s) {
     initSliders(sliderInfo);
 
     focalScale = scale_para.defaultValue;
-    contextRadius = contextRadius_para.defaultValue;
+    //contextRadius = Math.floor(contextLength_para.defaultValue/2);
 
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
     const uniforms = {
