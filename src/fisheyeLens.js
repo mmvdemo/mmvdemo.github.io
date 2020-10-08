@@ -213,8 +213,13 @@ function updateQuad_outside(h,w) {
 function initLinecharts() {
     initSingleLinechart(0,0);
 }
+let pt = new PIXI.Graphics();
+pt.beginFill();
+pt.drawCircle(0,0,3);
+pt.endFill();
+
 function updateLinecharts(h,w) {
-    const focus = getFocusInQuad("INSIDE",h,w);
+    const focus = getFocusInQuad(style_flag,h,w);
     focus.h = Math.floor(focus.h);
     focus.w = Math.floor(focus.w);
     const buffer = quad.geometry.getBuffer('aVertexPosition');
@@ -231,7 +236,8 @@ function updateLinecharts(h,w) {
     const canvas = document.getElementById("canvas");
     const rect = canvas.getBoundingClientRect();
     pos_pix.h += lensOrigin.h*PARA.step_pix.h+rect.top+container.y;
-    pos_pix.w+=lensOrigin.w*PARA.step_pix.w+rect.left+container.x;
+    pos_pix.w +=lensOrigin.w*PARA.step_pix.w+rect.left+container.x;
+    //pt.position.set(pos_pix.w-rect.left,pos_pix.h-rect.top);
     updateSingleLinechart(0,0,pos,grid_pix,pos_pix);
 }
 function distort_sliderHandle() {
@@ -283,14 +289,13 @@ function bodyListener(evt) {
     const canvas = document.getElementById("canvas");
     const rect = canvas.getBoundingClientRect();
     const mouseOnCanvas = {'h':evt.clientY-rect.top,'w':evt.clientX-rect.left};
-    let w = Math.floor(mouseOnCanvas.w/PARA.step_pix.w);
-    let h = Math.floor(mouseOnCanvas.h/PARA.step_pix.h);
-
-    if(w<0||h<0||w>=PARA.table.w||h>=PARA.table.h) {
-        return;
-    }
-    w = Math.max(0,Math.min(PARA.table.w-1,w)); 
-    h = Math.max(0,Math.min(PARA.table.h-1,h)); 
+    if(mouseOnCanvas.w<0||mouseOnCanvas.h<0||mouseOnCanvas.w>PARA.stage_pix.w+2*container.x||mouseOnCanvas.h>PARA.stage_pix.h+2*container.y){return;}
+    
+    mouseOnCanvas.h -= container.y;
+    mouseOnCanvas.w -= container.x;
+    let w = Math.floor((mouseOnCanvas.w)/PARA.step_pix.w);
+    let h = Math.floor((mouseOnCanvas.h)/PARA.step_pix.h);
+     
     if((focusPos.h>=0&&focusPos.w>=0)&&(Math.abs(h-focusPos.h)<=Math.floor(distort.h/2))&&(Math.abs(w-focusPos.w)<=Math.floor(distort.w/2))) {
         const lensOrigin = getLensOrigin(style_flag,focusPos.h,focusPos.w);
 
@@ -302,6 +307,9 @@ function bodyListener(evt) {
         w = pos.w+lensOrigin.w;
         h = pos.h+lensOrigin.h;
     }
+    w = Math.max(0,Math.min(PARA.table.w-1,w)); 
+    h = Math.max(0,Math.min(PARA.table.h-1,h));
+    console.log(`h = ${h}, w = ${w}`);
     if(style_flag==="INSIDE") {
         updateQuad_inside(h,w);
     } else if (style_flag==="OUTSIDE") {
@@ -314,7 +322,7 @@ function init(s) {
     style_flag = s;
     let sliderInfo = [];
     let distort_para = {
-        "defaultValue":15,
+        "defaultValue":distort.h,
         "max":50,
         "min":1,
         "id":"distort",
@@ -322,7 +330,7 @@ function init(s) {
     };
     sliderInfo.push(distort_para);
     let d_para = {
-        "defaultValue":4,
+        "defaultValue":d,
         "max":16,
         "min":1,
         "id":"d",
@@ -379,6 +387,7 @@ function init(s) {
 
     container.addChild(backgroundSprite);
     container.addChild(quad);
+    app.stage.addChild(pt);
 
     initLinecharts();
     currentTime.setHandle = changeCurrentTimeHandle;
