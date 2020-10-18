@@ -1,5 +1,7 @@
 import * as PARA from "./parameters.js";
-import {time_sliderHandle,createGridGeometry,createBackgroundTexture,initSliders,clearSliders} from "./utils.js";
+import {time_sliderHandle,initSliders,clearSliders} from "./slider.js";
+import {createGridGeometry} from "./mesh.js";
+import {createBackgroundTexture} from "./texture.js";
 import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./linechart.js";
 // for table lens
 let focalScale = 10;
@@ -233,8 +235,8 @@ function updateLinecharts(h,w) {
                 'h':buffer.data[2*bufferIndex(pos.h,pos.w)+1],
                 'w':buffer.data[2*bufferIndex(pos.h,pos.w)]
             };
-            pos_pix.h += rect.top;
-            pos_pix.w += rect.left;
+            pos_pix.h += rect.top + window.scrollY;
+            pos_pix.w += rect.left+window.scrollX;
             updateSingleLinechart(i,j,pos,grid_pix,pos_pix);
         }
     }

@@ -1,39 +1,15 @@
 import * as PARA from "./parameters.js";
-import {time_sliderHandle,createGridGeometry,createBackgroundTexture,initSliders,clearSliders} from "./utils.js";
+import {time_sliderHandle,initSliders,clearSliders} from "./slider.js";
+import {initGridMesh} from "./mesh.js";
+import {createBackgroundTexture} from "./texture.js";
+import {GridLineObject} from "./gridLines.js";
 import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./linechart.js";
 let d=10;
 let focusPos = {'w':-1,'h':-1};
 let quad;
+let gridLineObj;
 let app;
-const vertexSrc = `
 
-    precision mediump float;
-
-    attribute vec2 aVertexPosition;
-    attribute vec2 aUvs;
-
-    uniform mat3 translationMatrix;
-    uniform mat3 projectionMatrix;
-
-    varying vec2 vUvs;
-
-    void main() {
-        vUvs = aUvs;
-        gl_Position = vec4((projectionMatrix * translationMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-
-        }`;
-
-const fragmentSrc = `
-
-    precision mediump float;
-
-    varying vec2 vUvs;
-
-    uniform sampler2D uSampler2;
-
-    void main() {
-        gl_FragColor = texture2D(uSampler2, vUvs);
-                }`;
 function bufferIndex(h,w) {return h*(PARA.table.w+1)+w;}
 function g1(Dmax,Dnorm) {
     let g=0;
@@ -77,7 +53,17 @@ function updateQuad(h,w) {
         }
     }
     buffer.update();
+    updateGridLine();
 };
+function updateGridLine() {
+    //according to current quad
+    const buffer = quad.geometry.getBuffer('aVertexPosition');
+
+    const hori=[],vert=[];
+    for(let i=0;i<PARA.table.h+1;i++) {hori.push(buffer.data[2*bufferIndex(i,0)+1]);}
+    for(let j=0;j<PARA.table.w+1;j++) {vert.push(buffer.data[2*bufferIndex(0,j)]);}
+    gridLineObj.updatePosByLine(hori,vert)
+}
 function initLinecharts() {
     initSingleLinechart(0,0); 
 }
@@ -96,8 +82,8 @@ function updateLinecharts(h,w) {
     const canvas = document.getElementById("canvas");
     const rect = canvas.getBoundingClientRect();
 
-    pos_pix.h += rect.top;
-    pos_pix.w += rect.left;
+    pos_pix.h += rect.top + window.scrollY;
+    pos_pix.w += rect.left + window.scrollX;
 
     updateSingleLinechart(0,0,pos,grid_pix,pos_pix);
 }
@@ -159,13 +145,7 @@ export function loadCartesianLens() {
     initSliders(sliderInfo);
 
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
-    const uniforms = {
-        uSampler2: backgroundTexture,
-    };
-    const shader = PIXI.Shader.from(vertexSrc, fragmentSrc, uniforms);
-    const geometry = createGridGeometry(PARA.table.h,PARA.table.w);
-    quad = new PIXI.Mesh(geometry,shader);
-    quad.position.set(0,0);
+    quad = initGridMesh(PARA.table.h,PARA.table.w,backgroundTexture); 
     
     const container = new PIXI.Container();
     container.interactive = true;
@@ -178,9 +158,14 @@ export function loadCartesianLens() {
     app.stage.interactive = true;
     app.stage.addChild(container);
     container.addChild(quad);
+
+    gridLineObj = new GridLineObject(PARA.table.h+1,PARA.table.w+1);
+    updateGridLine(); 
+    gridLineObj.addTo(container);
+
     initLinecharts();
     currentTime.setHandle = changeCurrentTimeHandle;
-
+    
     document.body.addEventListener('mousemove',bodyListener);
 }
 export function destroyCartesianLens() {

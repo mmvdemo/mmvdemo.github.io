@@ -2,7 +2,7 @@ import * as PARA from "./parameters.js"
 
 let linechartSVG = {};
 let xaxisLabels = [];
-for(let i=timeStart;i<=timeEnd;i+=1) {
+for(let i=timeStart;i<=timeEnd;i+=5) {
     xaxisLabels.push(i.toString());
 }
 function getKey(h,w) {return `linechart${h}-${w}`;}
@@ -20,20 +20,23 @@ function getSingleClearLinechart(key) {
             data:[],
             options:{
                 backgroundGrid:false,
-                marginTop:PARA.chartMargin,
-                marginBottom:PARA.chartMargin,
-                marginLeft:PARA.chartMargin,
-                marginRight:PARA.chartMargin,
+                marginTop:PARA.chartMargin_normal_pix,
+                marginBottom:PARA.chartMargin_normal_pix,
+                marginLeft:PARA.chartMargin_normal_pix,
+                marginRight:PARA.chartMargin_normal_pix,
                 xaxis:true,
                 xaxisTickmarks:true,
-                xaxisLabels:xaxisLabels,
-                xaxisLabelsAngle:60,
-                xaxisLabelsOffsety:-3,
+                xaxisTickmarksLength:PARA.tickmarksLength_pix,
+                //xaxisLabels:xaxisLabels,
+                //xaxisLabelsAngle:60,
+                //xaxisLabelsOffsety:-3,
                 yaxis:true,
+                yaxisTickmarksLength:PARA.tickmarksLength_pix,
                 yaxisScale:true,
                 yaxisScaleDecimals:1,
                 yaxisTickmarks:true,
                 tickmarksStyle:"circle",
+                tickmarksFill:formatColor(PARA.lineColorLight),
                 tickmarksSize:PARA.nodeRadius,
                 tooltips:'<b>%{value}</b>',
                 tooltipsEvent:"click",
@@ -64,6 +67,7 @@ export function initSingleLinechart(h,w) {
 }
 
 export function updateSingleLinechart(h,w,idx,grid_pix,pos_pix) {
+    let ratio = grid_pix.h/PARA.chartSize_normal_pix;
     let key = getKey(h,w);
     let div = document.getElementById(key);
     div.display = "inline-block";
@@ -82,15 +86,23 @@ export function updateSingleLinechart(h,w,idx,grid_pix,pos_pix) {
     lc.originalData[0] = data;
     //style
     let stroke = getStrokeColor(idx.h,idx.w);
-    let interval = (grid_pix.w-2*PARA.chartMargin)/(timeEnd-timeStart);
+    let chartMargin_pix=PARA.chartMargin_normal_pix * ratio;
+    let nodeRadius_pix=PARA.nodeRadius_normal_pix*ratio;
+    let interval=(grid_pix.w-2*chartMargin_pix)/(timeEnd-timeStart);
     lc.originalColors.colors = [stroke];
 
-    lc.properties.xaxisTickmarksLength =interval; 
+    lc.properties.marginTop=chartMargin_pix; 
+    lc.properties.marginBottom=chartMargin_pix; 
+    lc.properties.marginLeft=chartMargin_pix; 
+    lc.properties.marginRight=chartMargin_pix; 
+    lc.properties.tickmarksSize=nodeRadius_pix;
+
+    lc.properties.xaxisTickmarksLength =PARA.tickmarksLength_pix; 
     lc.properties.xaxisLabelsSize = interval*0.8;
     lc.properties.xaxisLabelsColor = stroke;
     lc.properties.xaxisColor = stroke;
     
-    lc.properties.yaxisTickmarksLength =interval; 
+    lc.properties.yaxisTickmarksLength =PARA.tickmarksLength_pix; 
     lc.properties.yaxisLabelsSize = interval*0.8;
     lc.properties.yaxisLabelsColor = stroke;
     lc.properties.yaxisColor = stroke;

@@ -1,5 +1,6 @@
 import * as PARA from "./parameters.js";
-import {createBackgroundTexture,time_sliderHandle,initSliders,clearSliders} from "./utils.js";
+import {time_sliderHandle,initSliders,clearSliders} from "./slider.js";
+import {createBackgroundTexture} from "./texture.js";
 import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./linechart.js";
 
 let distort = {'h':19,'w':19};
@@ -242,8 +243,8 @@ function updateLinecharts(h,w) {
     const lensOrigin = getLensOrigin(style_flag,h,w);
     const canvas = document.getElementById("canvas");
     const rect = canvas.getBoundingClientRect();
-    pos_pix.h += lensOrigin.h*PARA.step_pix.h+rect.top+container.y;
-    pos_pix.w += lensOrigin.w*PARA.step_pix.w+rect.left+container.x;
+    pos_pix.h += lensOrigin.h*PARA.step_pix.h+rect.top+window.scrollY+container.y;
+    pos_pix.w += lensOrigin.w*PARA.step_pix.w+rect.left+window.scrollX+container.x;
     pt.position.set(pos_pix.w-rect.left,pos_pix.h-rect.top);
     updateSingleLinechart(0,0,pos,grid_pix,pos_pix);
 }
@@ -382,7 +383,6 @@ function init(s) {
     container = new PIXI.Container();
     container.x = EP/2;
     container.y=EP/2;
-    //let canvas = document.getElementById("mycanvas");
     const canvas = document.createElement("canvas");
     canvas.id = "canvas";
     canvas.style.position = "absolute";
