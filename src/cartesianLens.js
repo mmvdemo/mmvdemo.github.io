@@ -62,7 +62,7 @@ function updateGridLine() {
     const hori=[],vert=[];
     for(let i=0;i<PARA.table.h+1;i++) {hori.push(buffer.data[2*bufferIndex(i,0)+1]);}
     for(let j=0;j<PARA.table.w+1;j++) {vert.push(buffer.data[2*bufferIndex(0,j)]);}
-    gridLineObj.updatePosByLine(hori,vert)
+    gridLineObj.updatePosByLine(hori,vert);
 }
 function initLinecharts() {
     initSingleLinechart(0,0); 
@@ -159,7 +159,7 @@ export function loadCartesianLens() {
     app.stage.addChild(container);
     container.addChild(quad);
 
-    gridLineObj = new GridLineObject(PARA.table.h+1,PARA.table.w+1);
+    gridLineObj = new GridLineObject(PARA.table.h,PARA.table.w);
     updateGridLine(); 
     gridLineObj.addTo(container);
 
