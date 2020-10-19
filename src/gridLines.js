@@ -18,18 +18,18 @@ function initGridLine() {
 initGridLine();
 
 export class GridLineObject {
-    constructor(h,w) {
-        this.h = h;
-        this.w = w;
+    constructor(hh,ww) {
+        this.h = hh+1;
+        this.w = ww+1;
         this.horiLines=[];
         this.vertLines = [];
 
-        for(let i=0;i<=h;i++) {
-            const line = this.createSingleLine("HORIZONTAL",w);
+        for(let i=0;i<this.h;i++) {
+            const line = this.createSingleLine("HORIZONTAL",ww);
             this.horiLines.push(line);
         }
-        for(let i=0;i<=w;i++) {
-            const line = this.createSingleLine("VERTICAL",h);
+        for(let i=0;i<this.w;i++) {
+            const line = this.createSingleLine("VERTICAL",hh);
             this.vertLines.push(line);
         }
 
@@ -54,43 +54,42 @@ export class GridLineObject {
 
     updatePosByVertice(array) {
         for(let i=0;i<this.h;i++) {
+            const mesh = this.horiLines[i];
+            const buffer = mesh.geometry.getBuffer('aVertexPosition');
             for(let j=0;j<this.w;j++) {
-                updateSinglePos(i,j,array[i][j]);
+                buffer.data[2*j+1]=array[i][j].h;
+                buffer.data[2*j] = array[i][j].w;
+                buffer.data[2*(j+this.w)+1] = array[i][j].h+1;
+                buffer.data[2*(j+this.w)]=array[i][j].w;
             }
+            buffer.update();
+        }
+        for(let j=0;j<this.w;j++) {
+            const mesh = this.vertLines[j];
+            const buffer = mesh.geometry.getBuffer('aVertexPosition');
+            for(let i=0;i<this.h;i++) {
+                buffer.data[2*(2*i)+1] = array[i][j].h;
+                buffer.data[2*(2*i)] = array[i][j].w;
+                buffer.data[2*(2*i+1)+1] = array[i][j].h;
+                buffer.data[2*(2*i+1)] = array[i][j].w+1;
+            }
+            buffer.update();
         }
     }
 
     updatePosByLine(hori,vert) {
-        for(let i=0;i<=this.h;i++) {
+        for(let i=0;i<this.h;i++) {
             this.horiLines[i].position.set(0,hori[i]); 
         }
-        for(let j=0;j<=this.w;j++) {
+        for(let j=0;j<this.w;j++) {
             this.vertLines[j].position.set(vert[j],0);
         }
     }
-    
-    //updateSinglePos(h,w,pos) {
-    //    //horizontal
-    //    const horiMesh = this.horiLines[h];
-    //    const horiBuffer = horiMesh.geometry.getBuffer('aVertexPosition');
-    //    let horiIndex = w;
-    //    horiBuffer.data[2*horiIndex+1] = pos.h;
-    //    horiBuffer.data[2*horiIndex]=pos.w;
-    //    horiIndex = this.w+w;
-    //    horiBuffer.data[2*horiIndex+1] = pos.h+1;
-    //    horiBuffer.data[2*horiIndex]=pos.w;
-    //    horiBuffer.update();
-    //    //vertical
-    //    const vertMesh = this.vertLines[w];
-    //    const vertBuffer = vertMesh.geometry.getBuffer('aVertexPosition');
-    //    let vertIndex=2*h;
-    //    horiBuffer.data[2*vertIndex+1]=pos.h;
-    //    horiBuffer.data[2*vertIndex]=pos.w;
-    //    vertIndex += 1;
-    //    horiBuffer.data[2*vertIndex+1]=pos.h;
-    //    horiBuffer.data[2*vertIndex]=pos.w+1;
-    //    vertBuffer.update();
-    //}
-
+    printHoriPos() {
+        for(let i=0;i<this.h;i++) {
+            const horiBuffer = this.horiLines[i].geometry.getBuffer('aVertexPosition');
+            console.log(horiBuffer.data);
+        }
+    }
 }
 

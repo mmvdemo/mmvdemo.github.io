@@ -68,12 +68,34 @@ export function createGridGeometry(h,w,step_pix) {
         .addIndex(index_list);
     return geometry;
 }
+export function getMeshPos(quad,height,width) {
+    const buffer = quad.geometry.getBuffer('aVertexPosition');
+    function bufferIndex(h,w) {return h*width+w;}
+    const array = [];
+    for(let i=0;i<height;i++) {
+        const row = [];
+        for(let j=0;j<width;j++) {
+            const pos_pix = {};
+            pos_pix.h = buffer.data[2*bufferIndex(i,j)+1];
+            pos_pix.w = buffer.data[2*bufferIndex(i,j)];
+            row.push(pos_pix);
+        }
+        array.push(row);
+    }
+    return array;
+}
 export function initGridMesh(h,w,texture,step_pix) {
     step_pix = (typeof step_pix !== 'undefined') ? step_pix:PARA.step_pix;
     const uniforms = {uSampler2:texture};
     const shader = PIXI.Shader.from(vertexSrc,fragmentSrc,uniforms);
     const geometry = createGridGeometry(h,w,step_pix);
-    const quad = new PIXI.Mesh(geometry,shader,step_pix);
+    const quad = new PIXI.Mesh(geometry,shader);
+    return quad;
+}
+export function initMesh(geometry,texture) {
+    const uniforms = {uSampler2:texture};
+    const shader = PIXI.Shader.from(vertexSrc,fragmentSrc,uniforms);
+    const quad = new PIXI.Mesh(geometry,shader);
     return quad;
 }
 

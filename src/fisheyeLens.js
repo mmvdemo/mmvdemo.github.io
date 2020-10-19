@@ -1,46 +1,19 @@
 import * as PARA from "./parameters.js";
 import {time_sliderHandle,initSliders,clearSliders} from "./slider.js";
 import {createBackgroundTexture} from "./texture.js";
+import {getMeshPos,initGridMesh,initMesh} from "./mesh.js";
+import {GridLineObject} from "./gridLines.js";
 import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./linechart.js";
 
 let distort = {'h':19,'w':19};
 let focusPos = {'h':-1,'w':-1};
 let d = 8;
 let distort_pix = {'h':distort.h*PARA.step_pix.h,'w':distort.w*PARA.step_pix.w};
-let quad,backgroundSprite;
 let app;
-let container;
+let backgroundQuad,quad;
+let backgroundGridLineObj,lensGridLineObj;
+let container,lensContainer,lensGridLineContainer;
 let style_flag;
-
-const vertexSrc = `
-
-    precision mediump float;
-
-    attribute vec2 aVertexPosition;
-    attribute vec2 aUvs;
-
-    uniform mat3 translationMatrix;
-    uniform mat3 projectionMatrix;
-
-    varying vec2 vUvs;
-
-    void main() {
-        vUvs = aUvs;
-        gl_Position = vec4((projectionMatrix * translationMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-
-        }`;
-
-const fragmentSrc = `
-
-    precision mediump float;
-
-    varying vec2 vUvs;
-
-    uniform sampler2D uSampler2;
-
-    void main() {
-        gl_FragColor = texture2D(uSampler2, vUvs);
-                }`;
 
 function createFisheyeGeometry() {
     const pos_list = [],pos_list_uv = [],index_list=[];
@@ -198,8 +171,7 @@ function updateQuad_inside(h,w) {
     const lensOrigin = getLensOrigin("INSIDE",h,w);;
     const bgTexture = createBackgroundTexture(lensOrigin.h,lensOrigin.w,lensOrigin.h+distort.h-1,lensOrigin.w+distort.w-1);
     quad.shader.uniforms.uSampler2 = bgTexture;
-    quad.x = lensOrigin.w * PARA.step_pix.w;
-    quad.y = lensOrigin.h * PARA.step_pix.h;
+    lensContainer.position.set(lensOrigin.w * PARA.step_pix.w,lensOrigin.h * PARA.step_pix.h);
     const f = getFocusInQuad("INSIDE",h,w); 
     const buffer = quad.geometry.getBuffer('aVertexPosition');
     for(let i=0;i<=distort.h;i++) {
@@ -210,21 +182,31 @@ function updateQuad_inside(h,w) {
         }
     }
     buffer.update();
+    updateLensGridLine();
 };
+function updateBackgroundGridLine() {
+    const buffer = backgroundQuad.geometry.getBuffer('aVertexPosition');
+    function getIndex(h,w) {return h*(PARA.table.w+1)+w;}
+    const hori=[],vert=[];
+    for(let i=0;i<PARA.table.h+1;i++) {hori.push(buffer.data[2*getIndex(i,0)+1]);}
+    for(let j=0;j<PARA.table.w+1;j++) {vert.push(buffer.data[2*getIndex(0,j)]);}
+    backgroundGridLineObj.updatePosByLine(hori,vert);
+}
+function updateLensGridLine() {
+    const posArray_pix = getMeshPos(quad,distort.h+1,distort.w+1);
+    lensGridLineObj.updatePosByVertice(posArray_pix);
+}
 function updateQuad_outside(h,w) {
     focusPos.h=h;
     focusPos.w=w;
     const lensOrigin =getLensOrigin("OUTSIDE",h,w);
     const bgTexture = createBackgroundTexture(lensOrigin.h,lensOrigin.w,lensOrigin.h+distort.h-1,lensOrigin.w+distort.w-1);
     quad.shader.uniforms.uSampler2 = bgTexture;
-    quad.x = lensOrigin.w * PARA.step_pix.w;
-    quad.y = lensOrigin.h * PARA.step_pix.h;
+    lensContainer.position.set(lensOrigin.w * PARA.step_pix.w,lensOrigin.h * PARA.step_pix.h);
 }
 function initLinecharts() {
     initSingleLinechart(0,0);
 }
-let pt;
-
 
 function updateLinecharts(h,w) {
     const focus = getFocusInQuad(style_flag,h,w);
@@ -245,7 +227,6 @@ function updateLinecharts(h,w) {
     const rect = canvas.getBoundingClientRect();
     pos_pix.h += lensOrigin.h*PARA.step_pix.h+rect.top+window.scrollY+container.y;
     pos_pix.w += lensOrigin.w*PARA.step_pix.w+rect.left+window.scrollX+container.x;
-    pt.position.set(pos_pix.w-rect.left,pos_pix.h-rect.top);
     updateSingleLinechart(0,0,pos,grid_pix,pos_pix);
 }
 function distort_sliderHandle() {
@@ -283,7 +264,7 @@ function d_sliderHandle() {
 };
 function changeCurrentTimeHandle() {
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
-    backgroundSprite.texture = backgroundTexture;
+    backgroundQuad.shader.uniforms.uSapler2=backgroundTexture;
     if(style_flag==="INSIDE") {
         updateQuad_inside(focusPos.h,focusPos.w);
     } else if(style_flag==="OUTSIDE") {
@@ -356,33 +337,8 @@ function init(s) {
     initSliders(sliderInfo);
 
     distort_pix = {'h':distort.h*PARA.step_pix.h,'w':distort.w*PARA.step_pix.w};
-    let EP = 0;
-    if(s==="INSIDE") {
-        EP = 0;
-    } else if(s==="OUTSIDE") {
-        EP = Math.max(distort_pix.h,distort_pix.w)/2;
-    }
-    // generate background texture
-    const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
-    // create background sprite
-    backgroundSprite = new PIXI.Sprite(backgroundTexture);
-    backgroundSprite.scale.x = PARA.step_pix.w;
-    backgroundSprite.scale.y = PARA.step_pix.h;
-    backgroundSprite.x=0;
-    backgroundSprite.y=0;
-    
-    const uniforms = {
-        uSampler2: backgroundTexture,
-    };
-    const shader = PIXI.Shader.from(vertexSrc, fragmentSrc, uniforms);
-    const geometry = createFisheyeGeometry(); 
-    quad = new PIXI.Mesh(geometry, shader);
-    quad.position.set(0,0);
-    quad.interactive = true;
-   
-    container = new PIXI.Container();
-    container.x = EP/2;
-    container.y=EP/2;
+    let EP = (s==="OUTSIDE") ? Math.max(distort_pix.h,distort_pix.w)/2:0;
+
     const canvas = document.createElement("canvas");
     canvas.id = "canvas";
     canvas.style.position = "absolute";
@@ -390,15 +346,28 @@ function init(s) {
     app = new PIXI.Application({width:PARA.stage_pix.w+EP, height:PARA.stage_pix.h+EP, antialias:true, view:canvas});
     app.renderer.backgroundColor = PARA.backgroundColor;
     app.stage.interactive = true;
-    app.stage.addChild(container);   
 
-    container.addChild(backgroundSprite);
-    container.addChild(quad);
-    pt = new PIXI.Graphics();
-    pt.beginFill();
-    pt.drawCircle(0,0,3);
-    pt.endFill();
-    //app.stage.addChild(pt);
+    const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
+    backgroundQuad = initGridMesh(PARA.table.h,PARA.table.w,backgroundTexture); 
+    backgroundGridLineObj = new GridLineObject(PARA.table.h,PARA.table.w);
+    updateBackgroundGridLine();
+
+    const geometry = createFisheyeGeometry(); 
+    quad = initMesh(geometry,backgroundTexture);
+    lensGridLineObj = new GridLineObject(distort.h,distort.w);
+    updateLensGridLine();
+
+    container = new PIXI.Container();
+    container.position.set(EP/2,EP/2);
+    lensContainer = new PIXI.Container();
+    lensGridLineContainer = new PIXI.Container();
+    container.addChild(backgroundQuad);
+    backgroundGridLineObj.addTo(container);
+    lensGridLineObj.addTo(lensGridLineContainer);
+    lensContainer.addChild(quad);
+    lensContainer.addChild(lensGridLineContainer);
+    container.addChild(lensContainer);
+    app.stage.addChild(container);   
 
     initLinecharts();
     currentTime.setHandle = changeCurrentTimeHandle;
