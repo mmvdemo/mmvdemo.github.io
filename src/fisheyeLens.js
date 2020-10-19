@@ -207,7 +207,6 @@ function updateQuad_outside(h,w) {
 function initLinecharts() {
     initSingleLinechart(0,0);
 }
-
 function updateLinecharts(h,w) {
     const focus = getFocusInQuad(style_flag,h,w);
     focus.h = Math.min(distort.h-1,Math.floor(focus.h));
@@ -237,6 +236,9 @@ function distort_sliderHandle() {
     distort.w = Number(slider.value);
     const geometry = createFisheyeGeometry();
     quad.geometry = geometry;
+    lensGridLineObj.destroy(lensGridLineContainer);
+    lensGridLineObj = new GridLineObject(distort.h,distort.w);
+    lensGridLineObj.addTo(lensGridLineContainer);
     if(style_flag==="INSIDE") {
         updateQuad_inside(focusPos.h,focusPos.w);
     } else if(style_flag==="OUTSIDE") {
@@ -381,11 +383,13 @@ export function loadFisheyeLens_outside() {
     init("OUTSIDE");
 }
 export function destroyFisheyeLens_inside() {
+    lensGridLineObj.destroy(lensGridLineContainer);
     document.body.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
 }
 export function destroyFisheyeLens_outside() {
+    lensGridLineObj.destroy(lensGridLineContainer);
     document.body.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();

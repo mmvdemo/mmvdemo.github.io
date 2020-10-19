@@ -51,7 +51,6 @@ export class GridLineObject {
         }
         return mesh;
     }
-
     updatePosByVertice(array) {
         for(let i=0;i<this.h;i++) {
             const mesh = this.horiLines[i];
@@ -76,7 +75,6 @@ export class GridLineObject {
             buffer.update();
         }
     }
-
     updatePosByLine(hori,vert) {
         for(let i=0;i<this.h;i++) {
             this.horiLines[i].position.set(0,hori[i]); 
@@ -84,6 +82,12 @@ export class GridLineObject {
         for(let j=0;j<this.w;j++) {
             this.vertLines[j].position.set(vert[j],0);
         }
+    }
+    destroy(container) {
+        for(let i=0;i<container.children.length;i++) {
+            container.children[i].destroy(true);
+        }
+        container.removeChildren();
     }
     printHoriPos() {
         for(let i=0;i<this.h;i++) {
