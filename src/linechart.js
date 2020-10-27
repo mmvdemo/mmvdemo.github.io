@@ -12,51 +12,6 @@ function getStrokeColor(h,w) {
     if(getValue(currentTime.value,h,w)>0.5) stroke = PARA.lineColorLight;
     return formatColor(stroke);
 }
-function getSingleClearLinechart(key) {
-    let lc;
-    if(!(key in linechartSVG) || !linechartSVG[key]) {
-        lc = new RGraph.SVG.Line({
-            id:key,
-            data:[],
-            options:{
-                backgroundGrid:false,
-                marginTop:PARA.chartMargin_normal_pix,
-                marginBottom:PARA.chartMargin_normal_pix,
-                marginLeft:PARA.chartMargin_normal_pix,
-                marginRight:PARA.chartMargin_normal_pix,
-                xaxis:true,
-                xaxisTickmarks:true,
-                xaxisTickmarksLength:PARA.tickmarksLength_pix,
-                //xaxisLabels:xaxisLabels,
-                //xaxisLabelsAngle:60,
-                //xaxisLabelsOffsety:-3,
-                yaxis:true,
-                yaxisTickmarksLength:PARA.tickmarksLength_pix,
-                yaxisScale:true,
-                yaxisScaleDecimals:1,
-                yaxisTickmarks:true,
-                tickmarksStyle:"circle",
-                tickmarksFill:formatColor(PARA.lineColorLight),
-                tickmarksSize:PARA.nodeRadius,
-                tooltips:'<b>%{value}</b>',
-                tooltipsEvent:"click",
-                tooltipsOverride:function(obj,opt) {
-                    currentTime.setCurrent = timeStart+opt.index;
-                    let slider = document.getElementById("currentTime");
-                    slider.value = currentTime.getCurrent;
-                    let text = document.getElementById("currentTime-text");
-                    text.innerHTML = slider.value;
-                }
-            }
-        });
-        linechartSVG[key] = lc;
-    } else {
-        lc = linechartSVG[key];
-        RGraph.SVG.clear(lc.svg);
-    }
-    return lc;
-}
-
 export function initSingleLinechart(h,w) {
     let key = getKey(h,w);
     let div = document.createElement("div");   
@@ -64,10 +19,28 @@ export function initSingleLinechart(h,w) {
     div.setAttribute("class","linechart");
     div.display = "none";
     document.body.appendChild(div);
+    
+    const svg = d3.select("#"+key).append("svg")
+        .append("g");
+
+    const chartGroup = svg.append("g");
+    chartGroup.append("g")
+            .attr("id","x_axis");
+            
+    chartGroup.append("g")
+        .attr("id", "y_axis");
+
+    const dataset = d3.range(timeStart,timeEnd+1).map(function(d) { return {"time":d, "value":0} });
+    chartGroup.append("path")
+        .attr("id","line");
+    chartGroup.selectAll(".dot")
+        .data(dataset)
+        .enter().append("circle")
+        .attr("class","dot");
 }
 
 export function updateSingleLinechart(h,w,idx,grid_pix,pos_pix) {
-    let ratio = grid_pix.h/PARA.chartSize_normal_pix;
+    let ratio = grid_pix.h/(PARA.chartSize_normal_pix.h+2*PARA.chartMargin_normal_pix);
     let key = getKey(h,w);
     let div = document.getElementById(key);
     div.display = "inline-block";
@@ -77,41 +50,77 @@ export function updateSingleLinechart(h,w,idx,grid_pix,pos_pix) {
     //size
     div.style.height = `${grid_pix.h}px`;
     div.style.width = `${grid_pix.w}px`;
-    let lc = getSingleClearLinechart(key);
-    //data
-    let data = [];
-    for(let i=timeStart;i<=timeEnd;i++) {
-        data.push(getValue(i,idx.h,idx.w));
-    }
-    lc.originalData[0] = data;
-    //style
-    let stroke = getStrokeColor(idx.h,idx.w);
-    let chartMargin_pix=PARA.chartMargin_normal_pix * ratio;
-    let nodeRadius_pix=PARA.nodeRadius_normal_pix*ratio;
-    let interval=(grid_pix.w-2*chartMargin_pix)/(timeEnd-timeStart);
-    lc.originalColors.colors = [stroke];
 
-    lc.properties.marginTop=chartMargin_pix; 
-    lc.properties.marginBottom=chartMargin_pix; 
-    lc.properties.marginLeft=chartMargin_pix; 
-    lc.properties.marginRight=chartMargin_pix; 
-    lc.properties.tickmarksSize=nodeRadius_pix;
+    let dataset = d3.range(timeStart,timeEnd+1).map(function(d) { return {"time":d, "value": getValue(d,idx.h,idx.w) } });
+    let stroke = PARA.lineColorDark;
+    if(dataset[currentTime.value-timeStart].value>0.5) stroke = PARA.lineColorLight;
 
-    lc.properties.xaxisTickmarksLength =PARA.tickmarksLength_pix; 
-    lc.properties.xaxisLabelsSize = interval*0.8;
-    lc.properties.xaxisLabelsColor = stroke;
-    lc.properties.xaxisColor = stroke;
-    
-    lc.properties.yaxisTickmarksLength =PARA.tickmarksLength_pix; 
-    lc.properties.yaxisLabelsSize = interval*0.8;
-    lc.properties.yaxisLabelsColor = stroke;
-    lc.properties.yaxisColor = stroke;
-    
-    lc.draw();
+    const xScale = d3.scaleLinear()
+        .domain([timeStart,timeEnd+1])
+        .range([0, PARA.chartSize_normal_pix.w*ratio]); 
+    const yScale = d3.scaleLinear()
+        .domain([0, 1])  
+        .range([PARA.chartSize_normal_pix.h*ratio, 0]);
+    const line = d3.line()
+                .x(function(d) { return xScale(d.time); })
+                .y(function(d) { return yScale(d.value); });
+    const svg = d3.select("#"+key).select("svg")
+                  .attr("width",grid_pix.w)
+                  .attr("height",grid_pix.h)
+                .select("g");
+
+    const chartGroup = svg.select("g")
+                          .attr("stroke",formatColor(stroke))
+                          .attr("transform",`translate(${PARA.chartMargin_normal_pix*ratio},${PARA.chartMargin_normal_pix*ratio})`);
+    chartGroup.select("#x_axis")
+              .attr("transform",`translate(0,${PARA.chartSize_normal_pix.h*ratio})`)
+              .call(d3.axisBottom(xScale).ticks(Math.floor((timeEnd-timeStart+1)/5)))
+              .style("color",formatColor(stroke))
+              .selectAll("text")
+                  .attr("transform", "translate(5,0)rotate(0)")
+                  .style("text-anchor", "end")
+                  .style("font-size", PARA.linechart_axisTickFontSize.x*ratio); 
+    chartGroup.select("#y_axis")
+              .call(d3.axisLeft(yScale))
+              .style("color",formatColor(stroke))
+              .selectAll("text")
+                  .attr("transform", "translate(2,0)rotate(0)")
+                  .style("text-anchor", "end")
+                  .style("font-size", PARA.linechart_axisTickFontSize.y*ratio);
+    chartGroup.select("#line")
+              .datum(dataset)
+              .attr("d",line)
+              .attr("fill","none")
+              .attr("stroke_width",PARA.linechart_lineWidth_pix);
+    chartGroup.selectAll(".dot")
+                .data(dataset)
+                .attr("fill",formatColor(stroke))
+                .attr("class", "dot") 
+                .attr("cx", function(d) { return xScale(d.time) })
+                .attr("cy", function(d) { return yScale(d.value) })
+                .attr("r",PARA.nodeRadius_normal_pix)
+                .style("fill",function(d) {
+                    const color = d.time==currentTime.value?PARA.highlightColor:stroke;
+                    return formatColor(color); 
+                })
+                .style("stroke",function(d) {
+                    const color = d.time==currentTime.value?PARA.highlightColor:stroke;
+                    return formatColor(color); 
+                })
+                .on("click",function(d) {
+                    //d3.select(this)
+                    //    .style("fill",formatColor(PARA.highlightColor))
+                    //    .style("stroke",formatColor(PARA.highlightColor));
+                    
+                    currentTime.setCurrent = d.time;
+                    let slider = document.getElementById("currentTime");
+                    slider.value = currentTime.value;
+                    let text = document.getElementById("currentTime-text");
+                    text.innerHTML = slider.value;
+                });
 }
 
 export function destroyLinecharts() {
-    linechartSVG = {};
     let linechartDiv = document.getElementsByClassName("linechart"); 
     while(document.getElementsByClassName("linechart").length>0) {
         linechartDiv = document.getElementsByClassName("linechart");

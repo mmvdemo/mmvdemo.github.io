@@ -6,7 +6,8 @@ import {GridLineObject} from "./gridLines.js";
 import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./linechart.js";
 import {highlightManager} from "./highlight.js";
 let d=10;
-let focusPos = {'w':-1,'h':-1};
+let focusPos = {'h':-1,'w':-1};
+let currentPos = {'h':-1,'w':-1};
 let quad;
 let gridLineObj;
 let app;
@@ -43,6 +44,8 @@ function binSearch(n,s,lo,hi) {
     return lo-1;
 }
 function updateQuad(h,w) {
+    currentPos.h=h;
+    currentPos.w=w;
     focusPos.h = h>PARA.table.h/2?h+1:h;
     focusPos.w = w>PARA.table.w/2?w+1:w;
     
@@ -101,15 +104,16 @@ function d_sliderHandle() {
     text.innerHTML = slider.value;
 
     d = Number(slider.value);
-    updateQuad(focusPos.h,focusPos.w);
+    updateQuad(currentPos.h,currentPos.w);
     destroyLinecharts();
     initLinecharts();
-    updateLinecharts(focusPos.h,focusPos.w);
+    updateLinecharts(currentPos.h,currentPos.w);
 };
 
 function changeCurrentTimeHandle() {
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
     quad.shader.uniforms.uSampler2 = backgroundTexture; 
+    updateLinecharts(currentPos.h,currentPos.w);
 }
 function bodyListener(evt) {
     const canvas = document.getElementById("canvas");
@@ -142,7 +146,7 @@ export function loadCartesianLens() {
     };
     sliderInfo.push(d_para);
     let time_para = {
-        "defaultValue":currentTime.getCurrent,
+        "defaultValue":currentTime.value,
         "max":timeEnd,
         "min":timeStart,
         "id":"currentTime",
