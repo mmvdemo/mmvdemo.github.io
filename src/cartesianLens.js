@@ -1,9 +1,10 @@
 import * as PARA from "./parameters.js";
 import {time_sliderHandle,initSliders,clearSliders} from "./slider.js";
-import {initGridMesh} from "./mesh.js";
+import {getMeshPos,initGridMesh} from "./mesh.js";
 import {createBackgroundTexture} from "./texture.js";
 import {GridLineObject} from "./gridLines.js";
 import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./linechart.js";
+import {highlightManager} from "./highlight.js";
 let d=10;
 let focusPos = {'w':-1,'h':-1};
 let quad;
@@ -54,6 +55,7 @@ function updateQuad(h,w) {
     }
     buffer.update();
     updateGridLine();
+    highlightManager.updateAll();
 };
 function updateGridLine() {
     //according to current quad
@@ -63,6 +65,11 @@ function updateGridLine() {
     for(let i=0;i<PARA.table.h+1;i++) {hori.push(buffer.data[2*bufferIndex(i,0)+1]);}
     for(let j=0;j<PARA.table.w+1;j++) {vert.push(buffer.data[2*bufferIndex(0,j)]);}
     gridLineObj.updatePosByLine(hori,vert);
+}
+function getVerticePositionsByGrid(pos1,pos2) {
+    const quadSize = {'h':PARA.table.h+1,'w':PARA.table.w+1};
+    const array = getMeshPos(quad,quadSize,pos1,{'h':pos2.h+1,'w':pos2.w+1});
+    return array;
 }
 function initLinecharts() {
     initSingleLinechart(0,0); 
@@ -143,7 +150,7 @@ export function loadCartesianLens() {
     };
     sliderInfo.push(time_para);
     initSliders(sliderInfo);
-
+    
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
     quad = initGridMesh(PARA.table.h,PARA.table.w,backgroundTexture); 
     
@@ -167,10 +174,13 @@ export function loadCartesianLens() {
     currentTime.setHandle = changeCurrentTimeHandle;
     
     document.body.addEventListener('mousemove',bodyListener);
+    highlightManager.registerGetPosHandle(getVerticePositionsByGrid);
+    highlightManager.loadTo(container);
 }
 export function destroyCartesianLens() {
     document.body.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
     destroyLinecharts();
+    highlightManager.unregisterGetPosHandle();
 }

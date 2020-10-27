@@ -1,19 +1,10 @@
 import * as PARA from "./parameters.js";
 import {createGridGeometry,initGridMesh} from "./mesh.js";
+import {createSingleColorTexture} from "./texture.js";
 
 let gridLineTexture;
-function createGridLineTexture() {
-    const rgba = new Float32Array(4);
-    rgba[0] = (PARA.gridLineColor>>16)/256;
-    rgba[1] = ((PARA.gridLineColor>>8)&((1<<8)-1))/256;
-    rgba[2] = (PARA.gridLineColor&((1<<8)-1))/256;
-    rgba[3] = 1;
-    const texture = PIXI.Texture.fromBuffer(rgba,1,1);
-    return texture;
-}
 function initGridLine() {
-    gridLineTexture = createGridLineTexture(); 
-    
+    gridLineTexture = createSingleColorTexture(PARA.gridLineColor); 
 }
 initGridLine();
 
@@ -25,11 +16,11 @@ export class GridLineObject {
         this.vertLines = [];
 
         for(let i=0;i<this.h;i++) {
-            const line = this.createSingleLine("HORIZONTAL",ww);
+            const line = initGridMesh(1,ww,gridLineTexture,{'h':PARA.gridLineWidth_pix,'w':PARA.step_pix.w});
             this.horiLines.push(line);
         }
         for(let i=0;i<this.w;i++) {
-            const line = this.createSingleLine("VERTICAL",hh);
+            const line = initGridMesh(hh,1,gridLineTexture,{'h':PARA.step_pix.h,'w':PARA.gridLineWidth_pix});
             this.vertLines.push(line);
         }
 
@@ -39,18 +30,13 @@ export class GridLineObject {
         for(let i=0;i<this.h;i++) {container.addChild(this.horiLines[i]);}
         for(let j=0;j<this.w;j++) {container.addChild(this.vertLines[j]);}
     }
-
-    createSingleLine(dir,gridNum) {
-        let mesh;
-        if(dir==="VERTICAL") {
-            mesh = initGridMesh(gridNum,1,gridLineTexture,{'h':PARA.step_pix.h,'w':PARA.gridLineWidth_pix});
-        } else if(dir==="HORIZONTAL") {
-            mesh = initGridMesh(1,gridNum,gridLineTexture,{'h':PARA.gridLineWidth_pix,'w':PARA.step_pix.w});
-        } else {
-            assert(false);
+    destroy(container) {
+        for(let i=0;i<container.children.length;i++) {
+            container.children[i].destroy(true);
         }
-        return mesh;
+        container.removeChildren();
     }
+    
     updatePosByVertice(array) {
         for(let i=0;i<this.h;i++) {
             const mesh = this.horiLines[i];
@@ -58,7 +44,7 @@ export class GridLineObject {
             for(let j=0;j<this.w;j++) {
                 buffer.data[2*j+1]=array[i][j].h;
                 buffer.data[2*j] = array[i][j].w;
-                buffer.data[2*(j+this.w)+1] = array[i][j].h+1;
+                buffer.data[2*(j+this.w)+1] = array[i][j].h+PARA.gridLineWidth_pix;
                 buffer.data[2*(j+this.w)]=array[i][j].w;
             }
             buffer.update();
@@ -70,7 +56,7 @@ export class GridLineObject {
                 buffer.data[2*(2*i)+1] = array[i][j].h;
                 buffer.data[2*(2*i)] = array[i][j].w;
                 buffer.data[2*(2*i+1)+1] = array[i][j].h;
-                buffer.data[2*(2*i+1)] = array[i][j].w+1;
+                buffer.data[2*(2*i+1)] = array[i][j].w+PARA.gridLineWidth_pix;
             }
             buffer.update();
         }
@@ -81,18 +67,6 @@ export class GridLineObject {
         }
         for(let j=0;j<this.w;j++) {
             this.vertLines[j].position.set(vert[j],0);
-        }
-    }
-    destroy(container) {
-        for(let i=0;i<container.children.length;i++) {
-            container.children[i].destroy(true);
-        }
-        container.removeChildren();
-    }
-    printHoriPos() {
-        for(let i=0;i<this.h;i++) {
-            const horiBuffer = this.horiLines[i].geometry.getBuffer('aVertexPosition');
-            console.log(horiBuffer.data);
         }
     }
 }

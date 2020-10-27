@@ -1,9 +1,10 @@
 import * as PARA from "./parameters.js";
 import {time_sliderHandle,initSliders,clearSliders} from "./slider.js";
-import {initGridMesh} from "./mesh.js";
+import {getMeshPos,initGridMesh} from "./mesh.js";
 import {GridLineObject} from "./gridLines.js";
 import {createBackgroundTexture} from "./texture.js";
 import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./linechart.js";
+import {highlightManager} from "./highlight.js";
 // for table lens
 let focalScale = 10;
 let contextRadius=1;
@@ -105,6 +106,7 @@ function updateQuad(h,w) {
     focusPos.w = w;
     buffer.update();
     updateGridLine();
+    highlightManager.updateAll();
 };
 function updateGridLine() {
     const buffer = quad.geometry.getBuffer('aVertexPosition');
@@ -113,6 +115,11 @@ function updateGridLine() {
     for(let i=0;i<=PARA.table.h;i++) {hori.push(buffer.data[2*bufferIndex(i,0)+1]);}
     for(let j=0;j<=PARA.table.w;j++) {vert.push(buffer.data[2*bufferIndex(0,j)]);}
     gridLineObj.updatePosByLine(hori,vert);
+}
+function getVerticePositionsByGrid(pos1,pos2) {
+    const quadSize = {'h':PARA.table.h+1,'w':PARA.table.w+1};
+    const array = getMeshPos(quad,quadSize,pos1,{'h':pos2.h+1,'w':pos2.w+1});
+    return array;
 }
 function updateMaskSprite() {
     const sum = {
@@ -334,6 +341,8 @@ function init(s) {
         initMaskSprite();
     }
     canvas.addEventListener('mousemove',bodyListener);
+    highlightManager.registerGetPosHandle(getVerticePositionsByGrid);
+    highlightManager.loadTo(container);
 }
 export function loadTableLens_stretch() {
     init("STRETCH"); 
@@ -346,10 +355,12 @@ export function destroyTableLens_stretch() {
     app.destroy(true,true);
     clearSliders();
     destroyLinecharts();
+    highlightManager.unregisterGetPosHandle();
 }
 export function destroyTableLens_step() {
     document.body.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
     destroyLinecharts();
+    highlightManager.unregisterGetPosHandle();
 }

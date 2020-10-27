@@ -68,13 +68,15 @@ export function createGridGeometry(h,w,step_pix) {
         .addIndex(index_list);
     return geometry;
 }
-export function getMeshPos(quad,height,width) {
+export function getMeshPos(quad,quadSize,pos1,pos2) {
+    if(pos1.h>pos2.h) [pos1.h,pos2.h]=[pos2.h,pos1.h];
+    if(pos1.w>pos2.w) [pos1.w,pos2.w]=[pos2.w,pos1.w];
     const buffer = quad.geometry.getBuffer('aVertexPosition');
-    function bufferIndex(h,w) {return h*width+w;}
+    function bufferIndex(h,w) {return h*quadSize.w+w;}
     const array = [];
-    for(let i=0;i<height;i++) {
+    for(let i=pos1.h;i<=pos2.h;i++) {
         const row = [];
-        for(let j=0;j<width;j++) {
+        for(let j=pos1.w;j<=pos2.w;j++) {
             const pos_pix = {};
             pos_pix.h = buffer.data[2*bufferIndex(i,j)+1];
             pos_pix.w = buffer.data[2*bufferIndex(i,j)];

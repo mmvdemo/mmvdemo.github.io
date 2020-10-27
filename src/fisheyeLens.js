@@ -4,6 +4,7 @@ import {createBackgroundTexture} from "./texture.js";
 import {getMeshPos,initGridMesh,initMesh} from "./mesh.js";
 import {GridLineObject} from "./gridLines.js";
 import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./linechart.js";
+import {highlightManager} from "./highlight.js";
 
 let distort = {'h':19,'w':19};
 let focusPos = {'h':-1,'w':-1};
@@ -183,7 +184,25 @@ function updateQuad_inside(h,w) {
     }
     buffer.update();
     updateLensGridLine();
+    highlightManager.updateAll();
 };
+function getVerticePositionsByGrid(pos1,pos2) {
+    const quadSize = {'h':PARA.table.h+1,'w':PARA.table.w+1};
+    const array = getMeshPos(backgroundQuad,quadSize,pos1,{'h':pos2.h+1,'w':pos2.w+1}); 
+    const lensMeshSize = {'h':distort.h+1,'w':distort.w+1};
+    const lensArray = getMeshPos(quad,lensMeshSize,{'h':0,'w':0},lensMeshSize);
+    const lensOrigin = getLensOrigin(style_flag,focusPos.h,focusPos.w);
+    function inLens(h,w) {return h>=lensOrigin.h&&h<=lensOrigin.h+distort.h&&w>=lensOrigin.w&&w<=lensOrigin.w+distort.w;}
+    for(let i=pos1.h;i<=pos2.h+1;i++) {
+        for(let j=pos1.w;j<=pos2.w+1;j++) {
+            if(inLens(i,j)) {
+                array[i-pos1.h][j-pos1.w].h = lensContainer.position.y+lensArray[i-lensOrigin.h][j-lensOrigin.w].h;
+                array[i-pos1.h][j-pos1.w].w = lensContainer.position.x+lensArray[i-lensOrigin.h][j-lensOrigin.w].w;
+            }
+        }
+    }
+    return array;
+}
 function updateBackgroundGridLine() {
     const buffer = backgroundQuad.geometry.getBuffer('aVertexPosition');
     function getIndex(h,w) {return h*(PARA.table.w+1)+w;}
@@ -193,7 +212,7 @@ function updateBackgroundGridLine() {
     backgroundGridLineObj.updatePosByLine(hori,vert);
 }
 function updateLensGridLine() {
-    const posArray_pix = getMeshPos(quad,distort.h+1,distort.w+1);
+    const posArray_pix = getMeshPos(quad,{'h':distort.h+1,'w':distort.w+1},{'h':0,'w':0},{'h':distort.h+1,'w':distort.w+1});
     lensGridLineObj.updatePosByVertice(posArray_pix);
 }
 function updateQuad_outside(h,w) {
@@ -203,6 +222,7 @@ function updateQuad_outside(h,w) {
     const bgTexture = createBackgroundTexture(lensOrigin.h,lensOrigin.w,lensOrigin.h+distort.h-1,lensOrigin.w+distort.w-1);
     quad.shader.uniforms.uSampler2 = bgTexture;
     lensContainer.position.set(lensOrigin.w * PARA.step_pix.w,lensOrigin.h * PARA.step_pix.h);
+    highlightManager.updateAll();
 }
 function initLinecharts() {
     initSingleLinechart(0,0);
@@ -266,7 +286,7 @@ function d_sliderHandle() {
 };
 function changeCurrentTimeHandle() {
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
-    backgroundQuad.shader.uniforms.uSapler2=backgroundTexture;
+    backgroundQuad.shader.uniforms.uSampler2=backgroundTexture;
     if(style_flag==="INSIDE") {
         updateQuad_inside(focusPos.h,focusPos.w);
     } else if(style_flag==="OUTSIDE") {
@@ -375,6 +395,9 @@ function init(s) {
     currentTime.setHandle = changeCurrentTimeHandle;
 
     document.body.addEventListener('mousemove',bodyListener);
+
+    highlightManager.registerGetPosHandle(getVerticePositionsByGrid);
+    highlightManager.loadTo(container);
 }
 export function loadFisheyeLens_inside() {
     init("INSIDE");
@@ -387,10 +410,12 @@ export function destroyFisheyeLens_inside() {
     document.body.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
+    highlightManager.unregisterGetPosHandle();
 }
 export function destroyFisheyeLens_outside() {
     lensGridLineObj.destroy(lensGridLineContainer);
     document.body.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
+    highlightManager.unregisterGetPosHandle();
 }
