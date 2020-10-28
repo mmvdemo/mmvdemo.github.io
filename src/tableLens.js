@@ -76,9 +76,10 @@ function initMaskSprite() {
 
 function binSearch(n,s,lo,hi) {
     const sum = transfer(doi,focusPos[s],PARA.table[s]);
+    const ratio = PARA.stage_pix[s]/sum;
     while(lo<hi) {
         let mi = Math.floor((lo+hi)/2);
-        if(n<transfer(doi,focusPos[s],mi)/sum*PARA.stage_pix[s]) {
+        if(n<transfer(doi,focusPos[s],mi)*ratio) {
             hi = mi;
         } else {
             lo = mi+1;
@@ -261,6 +262,7 @@ function contextLength_sliderHandle() {
 function changeCurrentTimeHandle() {
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1); 
     quad.shader.uniforms.uSampler2 = backgroundTexture;
+    updateLinecharts(focusPos.h,focusPos.w);
 }
 function bodyListener(evt) {
     const canvas = document.getElementById("canvas");
@@ -340,7 +342,7 @@ function init(s) {
     if(style_flag=="STEP") {
         initMaskSprite();
     }
-    canvas.addEventListener('mousemove',bodyListener);
+    document.body.addEventListener('mousemove',bodyListener);
     highlightManager.registerGetPosHandle(getVerticePositionsByGrid);
     highlightManager.loadTo(container);
 }
