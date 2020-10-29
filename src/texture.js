@@ -28,7 +28,7 @@ export function createBackgroundTexture(h1,w1,h2,w2) {
                 continue;
             }
             let value = getValue(currentTime.value,i+h1,j+w1);
-            let colorStr = d3.interpolateYlGn(value);
+            let colorStr = d3.interpolateGreys(value);
             let color = rgbStrToHex(colorStr);
             let idx = i*width+j;
             rgba[idx*4] = (color>>16)/256;
