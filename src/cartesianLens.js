@@ -1,13 +1,15 @@
 import * as PARA from "./parameters.js";
+import * as UTILS from "./utils.js";
 import {time_sliderHandle,initSliders,clearSliders} from "./slider.js";
 import {getMeshPos,initGridMesh} from "./mesh.js";
 import {createBackgroundTexture} from "./texture.js";
 import {GridLineObject} from "./gridLines.js";
 import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./linechart.js";
 import {highlightManager} from "./highlight.js";
+import {mouseTracker,mouseTracker_mousemoveHandle} from "./tracking.js";
 let d=10;
-let focusPos = {'h':-1,'w':-1};
-let currentPos = {'h':-1,'w':-1};
+//let focusPos = {'h':-1,'w':-1};
+//let currentPos = {'h':-1,'w':-1};
 let quad;
 let gridLineObj;
 let app;
@@ -116,9 +118,7 @@ function changeCurrentTimeHandle() {
     updateLinecharts(currentPos.h,currentPos.w);
 }
 function bodyListener(evt) {
-    const canvas = document.getElementById("canvas");
-    const rect = canvas.getBoundingClientRect();
-    const mouseOnCanvas = {'h':evt.clientY-rect.top,'w':evt.clientX-rect.left};
+    const mouseOnCanvas = UTILS.getMouseOnCanvas(evt); 
     let h,w;
     if(focusPos.h<0 || focusPos.w<0) {
         w = Math.floor(mouseOnCanvas.w/PARA.step_pix.w);
@@ -134,7 +134,6 @@ function bodyListener(evt) {
     updateQuad(h,w);
     updateLinecharts(h,w);
 }
-
 export function loadCartesianLens() {
     let sliderInfo = [];
     let d_para = {
@@ -178,10 +177,18 @@ export function loadCartesianLens() {
     currentTime.setHandle = changeCurrentTimeHandle;
     
     document.body.addEventListener('mousemove',bodyListener);
+    
     highlightManager.registerGetPosHandle(getVerticePositionsByGrid);
     highlightManager.loadTo(container);
+
+    //mouseTracker.start();
+    // for debug
+    //setTimeout(function() {
+    //    mouseTracker.pause();
+    //},PARA.DEBUG_recordingTimeout*1000);
 }
 export function destroyCartesianLens() {
+    //mouseTracker.pause();
     document.body.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();

@@ -23,6 +23,11 @@ export const tickmarksLength_pix = 2;
 export const gridLineWidth_pix = 1;
 export const highlightWidth_pix = 4;
 export const EP = 100;
+// tracker
+export const interval = 1;
+export const timeout = 3;
+export const DEBUG_recordingTimeout = 10;
+export const DEBUG_printData_SpaceAlign = 40;
 export function loadParameters() {
     table.h=nodeCnt;
     table.w=nodeCnt;

@@ -5,6 +5,7 @@ import {GridLineObject} from "./gridLines.js";
 import {createBackgroundTexture} from "./texture.js";
 import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./linechart.js";
 import {highlightManager} from "./highlight.js";
+import {mouseTracker} from "./tracking.js";
 // for table lens
 let focalScale = 10;
 let contextRadius=1;
@@ -36,7 +37,6 @@ let sumDOI = function(doi,foc,isWidth) {
 //let doi = expDOI;
 let doi = tableDOI;
 
-let focusPos = {'w':-1,'h':-1};
 
 let maskSprites = {};
 let maskSpriteContainer;
@@ -103,8 +103,8 @@ function updateQuad(h,w) {
         }
         trans.h += doi(i-h);
     }
-    focusPos.h = h;
-    focusPos.w = w;
+    focusPos = {'h':h,'w':w};
+    currentPos = {...focusPos};
     buffer.update();
     updateGridLine();
     highlightManager.updateAll();
@@ -272,7 +272,7 @@ function bodyListener(evt) {
     //let h = Math.floor(mouseOnCanvas.h/PARA.step_pix.h);
     let w = binSearch(mouseOnCanvas.w,'w',0,PARA.table.w);
     let h= binSearch(mouseOnCanvas.h,'h',0,PARA.table.h);
-    console.log(`h=${h},w=${w}`);
+    //console.log(`h=${h},w=${w}`);
     w = Math.max(contextRadius,Math.min(PARA.table.w-contextRadius-1,w));
     h = Math.max(contextRadius,Math.min(PARA.table.h-contextRadius-1,h));
     updateQuad(h,w);
@@ -345,6 +345,12 @@ function init(s) {
     document.body.addEventListener('mousemove',bodyListener);
     highlightManager.registerGetPosHandle(getVerticePositionsByGrid);
     highlightManager.loadTo(container);
+
+    //mouseTracker.start();
+    //// for debug
+    //setTimeout(function() {
+    //    mouseTracker.pause();
+    //},PARA.DEBUG_recordingTimeout*1000);
 }
 export function loadTableLens_stretch() {
     init("STRETCH"); 

@@ -1,5 +1,5 @@
 import * as PARA from "./parameters.js";
-import {createLineChartsTexture} from "./utils.js";
+import {createLineChartsTexture} from "./staticLinechartTexture.js";
 import {createBackgroundTexture} from "./texture.js";
 
 const zoomRange = {'min':0.000001,'max':200};

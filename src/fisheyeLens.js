@@ -5,9 +5,9 @@ import {getMeshPos,initGridMesh,initMesh} from "./mesh.js";
 import {GridLineObject} from "./gridLines.js";
 import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./linechart.js";
 import {highlightManager} from "./highlight.js";
+import {mouseTracker} from "./tracking.js";
 
 let distort = {'h':19,'w':19};
-let focusPos = {'h':-1,'w':-1};
 let d = 8;
 let distort_pix = {'h':distort.h*PARA.step_pix.h,'w':distort.w*PARA.step_pix.w};
 let app;
@@ -167,8 +167,8 @@ function searchMousePosition(mouselocal) {
     return pos;
 }
 function updateQuad_inside(h,w) {
-    focusPos.h=h;
-    focusPos.w=w;
+    currentPos={'h':h,'w':w};
+    focusPos = {...currentPos};
     const lensOrigin = getLensOrigin("INSIDE",h,w);;
     const bgTexture = createBackgroundTexture(lensOrigin.h,lensOrigin.w,lensOrigin.h+distort.h-1,lensOrigin.w+distort.w-1);
     quad.shader.uniforms.uSampler2 = bgTexture;
@@ -216,8 +216,8 @@ function updateLensGridLine() {
     lensGridLineObj.updatePosByVertice(posArray_pix);
 }
 function updateQuad_outside(h,w) {
-    focusPos.h=h;
-    focusPos.w=w;
+    currentPos = {'h':h,'w':w};
+    focusPos = {...currentPos};
     const lensOrigin =getLensOrigin("OUTSIDE",h,w);
     const bgTexture = createBackgroundTexture(lensOrigin.h,lensOrigin.w,lensOrigin.h+distort.h-1,lensOrigin.w+distort.w-1);
     quad.shader.uniforms.uSampler2 = bgTexture;
@@ -320,7 +320,7 @@ function bodyListener(evt) {
     }
     w = Math.max(0,Math.min(PARA.table.w-1,w)); 
     h = Math.max(0,Math.min(PARA.table.h-1,h));
-    console.log(`h = ${h}, w = ${w}`);
+    //console.log(`h = ${h}, w = ${w}`);
     if(style_flag==="INSIDE") {
         updateQuad_inside(h,w);
     } else if (style_flag==="OUTSIDE") {
@@ -398,6 +398,12 @@ function init(s) {
 
     highlightManager.registerGetPosHandle(getVerticePositionsByGrid);
     highlightManager.loadTo(container);
+
+    //mouseTracker.start();
+    //// for debug
+    //setTimeout(function() {
+    //    mouseTracker.pause();
+    //},PARA.DEBUG_recordingTimeout*1000);
 }
 export function loadFisheyeLens_inside() {
     init("INSIDE");

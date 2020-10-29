@@ -1,6 +1,8 @@
 import * as PARA from "./parameters.js"
+import {mouseTracker_mouseclickHandle} from "./tracking.js";
 
-let linechartSVG = {};
+export let displaying_charts = {};
+
 let xaxisLabels = [];
 for(let i=timeStart;i<=timeEnd;i+=5) {
     xaxisLabels.push(i.toString());
@@ -42,6 +44,7 @@ export function initSingleLinechart(h,w) {
 export function updateSingleLinechart(h,w,idx,grid_pix,pos_pix) {
     let ratio = grid_pix.h/(PARA.chartSize_normal_pix.h+2*PARA.chartMargin_normal_pix);
     let key = getKey(h,w);
+    displaying_charts[key] = {...idx};
     let div = document.getElementById(key);
     div.display = "inline-block";
     //position
@@ -111,16 +114,17 @@ export function updateSingleLinechart(h,w,idx,grid_pix,pos_pix) {
                     //d3.select(this)
                     //    .style("fill",formatColor(PARA.highlightColor))
                     //    .style("stroke",formatColor(PARA.highlightColor));
-                    
                     currentTime.setCurrent = d.time;
                     let slider = document.getElementById("currentTime");
                     slider.value = currentTime.value;
                     let text = document.getElementById("currentTime-text");
                     text.innerHTML = slider.value;
+                    mouseTracker_mouseclickHandle(); 
                 });
 }
 
 export function destroyLinecharts() {
+    displaying_charts = {};
     let linechartDiv = document.getElementsByClassName("linechart"); 
     while(document.getElementsByClassName("linechart").length>0) {
         linechartDiv = document.getElementsByClassName("linechart");
