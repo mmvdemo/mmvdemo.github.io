@@ -65,7 +65,7 @@ function getPolarPosition(h,w,f) {
         beta_buf['horizontal'] =(f.h-h)/f.h;
     } else {
         if(f.h==distort.h) {
-            beta_buf['horizontal'] = 1;
+            beta_buf['horizontal'] = 0;
         }else {
             beta_buf['horizontal'] = (h-f.h)/(distort.h-f.h);
         }
@@ -74,7 +74,7 @@ function getPolarPosition(h,w,f) {
         beta_buf['vertical'] = (f.w-w)/f.w;
     } else {
         if(f.w==distort.w){
-            beta_buf['vertical'] = 1;
+            beta_buf['vertical'] = 0;
         } else {
             beta_buf['vertical'] = (w-f.w)/(distort.w-f.w);
         }
@@ -166,6 +166,58 @@ function searchMousePosition(mouselocal) {
     pos.w = Math.floor(mouselocal.w/PARA.step_pix.w);
     return pos;
 }
+function getBoundingBox(pos1,pos2,pos3,pos4) {
+    const box = {};
+    box.pos1 = {};
+    box.pos2 = {};
+    box.pos1.h = Math.min(pos1.h,pos2.h,pos3.h,pos4.h);
+    box.pos1.w = Math.min(pos1.w,pos2.w,pos3.w,pos4.w);
+
+    box.pos2.h = Math.max(pos1.h,pos2.h,pos3.h,pos4.h);
+    box.pos2.w = Math.max(pos1.w,pos2.w,pos3.w,pos4.w);
+    return box
+}
+function alignFocusGrid(f) {
+    const buffer = quad.geometry.getBuffer('aVertexPosition');
+    f.h = Math.min(distort.h-1,Math.floor(f.h));
+    f.w = Math.min(distort.w-1,Math.floor(f.w));
+    const pos1 = {'h':buffer.data[2*bufferIndex(f.h,f.w)+1],'w':buffer.data[2*bufferIndex(f.h,f.w)]};
+    const pos2 = {'h':buffer.data[2*bufferIndex(f.h,f.w+1)+1],'w':buffer.data[2*bufferIndex(f.h,f.w+1)]};
+    const pos3 = {'h':buffer.data[2*bufferIndex(f.h+1,f.w)+1],'w':buffer.data[2*bufferIndex(f.h+1,f.w)]};
+    const pos4 = {'h':buffer.data[2*bufferIndex(f.h+1,f.w+1)+1],'w':buffer.data[2*bufferIndex(f.h+1,f.w+1)]};
+    
+    const focusBox = getBoundingBox(pos1,pos2,pos3,pos4);
+    buffer.data[2*bufferIndex(f.h,f.w)+1] = focusBox.pos1.h;
+    buffer.data[2*bufferIndex(f.h,f.w)] = focusBox.pos1.w;
+    buffer.data[2*bufferIndex(f.h,f.w+1)+1] = focusBox.pos1.h;
+    buffer.data[2*bufferIndex(f.h,f.w+1)] = focusBox.pos2.w;
+    buffer.data[2*bufferIndex(f.h+1,f.w)+1] = focusBox.pos2.h;
+    buffer.data[2*bufferIndex(f.h+1,f.w)] = focusBox.pos1.w;
+    buffer.data[2*bufferIndex(f.h+1,f.w+1)+1] = focusBox.pos2.h;
+    buffer.data[2*bufferIndex(f.h+1,f.w+1)] = focusBox.pos2.w;
+    buffer.update();
+}
+function correctFlip() {
+    const buffer = quad.geometry.getBuffer('aVertexPosition');
+    for(let i=0;i<distort.h;i++) {
+        for(let j=0;j<distort.w;j++) {
+            const index = [2*bufferIndex(i,j),2*bufferIndex(i,j+1),2*bufferIndex(i+1,j),2*bufferIndex(i+1,j+1)];
+            if(buffer.data[index[0]]>buffer.data[index[1]]) {
+                [buffer.data[index[0]],buffer.data[index[1]]]=[buffer.data[index[1]],buffer.data[index[0]]];
+            }
+            if(buffer.data[index[2]]>buffer.data[index[3]]) {
+                [buffer.data[index[2]],buffer.data[index[3]]]=[buffer.data[index[3]],buffer.data[index[2]]];
+            }
+            if(buffer.data[index[0]+1]>buffer.data[index[2]+1]) {
+                [buffer.data[index[0]+1],buffer.data[index[2]+1]]=[buffer.data[index[2]+1],buffer.data[index[0]+1]];
+            }
+            if(buffer.data[index[1]+1]>buffer.data[index[3]+1]) {
+                [buffer.data[index[1]+1],buffer.data[index[3]+1]]=[buffer.data[index[3]+1],buffer.data[index[1]+1]];
+            }
+        }
+    }
+    buffer.update();
+}
 function updateQuad_inside(h,w) {
     currentPos={'h':h,'w':w};
     focusPos = {...currentPos};
@@ -183,8 +235,10 @@ function updateQuad_inside(h,w) {
         }
     }
     buffer.update();
-    updateLensGridLine();
+    alignFocusGrid(f);
+    correctFlip();
     highlightManager.updateAll();
+    updateLensGridLine();
 };
 function getVerticePositionsByGrid(pos1,pos2) {
     const quadSize = {'h':PARA.table.h+1,'w':PARA.table.w+1};
