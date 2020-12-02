@@ -6,3 +6,4 @@ export function getMouseOnCanvas(evt) {
     const mouseOnCanvas = {'h':evt.clientY-rect.top,'w':evt.clientX-rect.left};
     return mouseOnCanvas;
 }
+

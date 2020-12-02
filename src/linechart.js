@@ -48,6 +48,7 @@ export function updateSingleLinechart(h,w,idx,grid_pix,pos_pix) {
     displaying_charts[key] = {...idx};
     let div = document.getElementById(key);
     div.display = "inline-block";
+    
     //position
     div.style.top = `${pos_pix.h}px`;
     div.style.left = `${pos_pix.w}px`;
@@ -68,10 +69,16 @@ export function updateSingleLinechart(h,w,idx,grid_pix,pos_pix) {
     const line = d3.line()
                 .x(function(d) { return xScale(d.time); })
                 .y(function(d) { return yScale(d.value); });
-    const svg = d3.select("#"+key).select("svg")
-                  .attr("width",grid_pix.w)
-                  .attr("height",grid_pix.h)
-                .select("g");
+    let svg = d3.select("#"+key).select("svg");
+    svg.attr("visibility","visible");
+    if(grid_pix[minGridSide]<PARA.linechart_thresh_pix){
+        svg.attr("visibility","hidden");
+        return;
+    }
+    svg = svg.attr("width",grid_pix.w)
+             .attr("height",grid_pix.h)
+            .select("g");
+    
     const chartTranslate = {
         'h':(grid_pix.h-PARA.chartSize_normal_pix.h*ratio)/2,
         'w':(grid_pix.w-PARA.chartSize_normal_pix.w*ratio)/2

@@ -7,6 +7,7 @@ import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./lin
 import {highlightManager} from "./highlight.js";
 import {mouseTracker} from "./tracking.js";
 
+let contextRadius = 1; 
 let distort = {'h':19,'w':19};
 let d = 8;
 let distort_pix = {'h':distort.h*PARA.step_pix.h,'w':distort.w*PARA.step_pix.w};
@@ -279,29 +280,80 @@ function updateQuad_outside(h,w) {
     highlightManager.updateAll();
 }
 function initLinecharts() {
-    initSingleLinechart(0,0);
+    //initSingleLinechart(0,0);
+    for(let i=0;i<=2*contextRadius;i++) {
+        for(let j=0;j<=2*contextRadius;j++) {
+            initSingleLinechart(i,j);
+        }
+    }
 }
 function updateLinecharts(h,w) {
     const focus = getFocusInQuad(style_flag,h,w);
     focus.h = Math.min(distort.h-1,Math.floor(focus.h));
     focus.w = Math.min(distort.w-1,Math.floor(focus.w));
-    const buffer = quad.geometry.getBuffer('aVertexPosition');
-    let grid_pix = {
-        'h':buffer.data[2*bufferIndex(focus.h+1,focus.w)+1]-buffer.data[2*bufferIndex(focus.h,focus.w)+1],
-        'w':buffer.data[2*bufferIndex(focus.h,focus.w+1)]-buffer.data[2*bufferIndex(focus.h,focus.w)]
+    const center = {
+        'h':Math.floor(distort.h/2),
+        'w':Math.floor(distort.w/2)
     };
-    let pos = {'h':h,'w':w};
-    let pos_pix = {
-        'h':buffer.data[2*bufferIndex(focus.h,focus.w)+1],
-        'w':buffer.data[2*bufferIndex(focus.h,focus.w)]
-    };
+    const focusIdx={'h':h,'w':w};
+    //if(contextRadius>0) {
+    //    if(focus.h<center.h ) {focus.h+=1;focusIdx.h+=1;}
+    //    else if(focus.h>center.h) {focus.h-=1;focusIdx.h-=1;}
+    //    if(focus.w<center.w ) {focus.w+=1;focusIdx.w+=1;}
+    //    else if(focus.w>center.w) {focus.w-=1;focusIdx.w-=1;}
+    //}
+    if(focus.h<contextRadius) {
+        const delta = contextRadius-focus.h;
+        focus.h+=delta;
+        focusIdx.h+=delta;
+    } else if(focus.h+contextRadius>=distort.h) {
+        const delta = focus.h-(distort.h-1-contextRadius);
+        focus.h-=delta;
+        focusIdx.h-=delta;
+    }
+
+    let cr = Math.min(contextRadius,Math.floor((distort.h-1)/2));
     const lensOrigin = getLensOrigin(style_flag,h,w);
     const canvas = document.getElementById("canvas");
     const rect = canvas.getBoundingClientRect();
-    pos_pix.h += lensOrigin.h*PARA.step_pix.h+rect.top+window.scrollY+container.y;
-    pos_pix.w += lensOrigin.w*PARA.step_pix.w+rect.left+window.scrollX+container.x;
-    updateSingleLinechart(0,0,pos,grid_pix,pos_pix);
+    const translate = {
+        'h':lensOrigin.h*PARA.step_pix.h+rect.top+window.scrollY+container.y,
+        'w':lensOrigin.w*PARA.step_pix.w+rect.left+window.scrollX+container.x
+    };
+    const buffer = quad.geometry.getBuffer('aVertexPosition');
+    for(let i=0;i<=2*cr;i++) {
+        for(let j=0;j<=2*cr;j++) {
+            const local = {
+                'h':focus.h-cr+i,
+                'w':focus.w-cr+j
+            };
+            const width = {
+                'left':Math.max(buffer.data[2*bufferIndex(local.h,local.w)],buffer.data[2*bufferIndex(local.h+1,local.w)]),
+                'right':Math.min(buffer.data[2*bufferIndex(local.h,local.w+1)],buffer.data[2*bufferIndex(local.h+1,local.w+1)])
+            };
+            const height = {
+                'up':Math.max(buffer.data[2*bufferIndex(local.h,local.w)+1],buffer.data[2*bufferIndex(local.h,local.w+1)+1]),
+                'down':Math.min(buffer.data[2*bufferIndex(local.h+1,local.w)+1],buffer.data[2*bufferIndex(local.h+1,local.w+1)+1])
+            };
+            const grid_pix = {
+                'h':height.down-height.up,
+                'w':width.right-width.left
+            };
+            const pos = {
+                'h':focusIdx.h-cr+i,
+                'w':focusIdx.w-cr+j
+            };
+            const pos_pix = {
+                'h':height.up,
+                'w':width.left
+            };
+            pos_pix.h +=translate.h; 
+            pos_pix.w +=translate.w;
+            updateSingleLinechart(i,j,pos,grid_pix,pos_pix);
+        }
+    }
 }
+
 function distort_sliderHandle() {
     let text = document.getElementById("distort-text");
     let slider = document.getElementById("distort");
@@ -470,6 +522,7 @@ export function destroyFisheyeLens_inside() {
     document.body.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
+    destroyLinecharts();
     highlightManager.unregisterGetPosHandle();
 }
 export function destroyFisheyeLens_outside() {
@@ -477,5 +530,6 @@ export function destroyFisheyeLens_outside() {
     document.body.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
+    destroyLinecharts();
     highlightManager.unregisterGetPosHandle();
 }
