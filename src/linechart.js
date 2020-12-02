@@ -42,7 +42,8 @@ export function initSingleLinechart(h,w) {
 }
 
 export function updateSingleLinechart(h,w,idx,grid_pix,pos_pix) {
-    let ratio = grid_pix.h/(PARA.chartSize_normal_pix.h+2*PARA.chartMargin_normal_pix);
+    let minGridSide = grid_pix.h<=grid_pix.w?"h":"w";
+    let ratio = grid_pix[minGridSide]/(PARA.chartSize_normal_pix[minGridSide]+2*PARA.chartMargin_normal_pix);
     let key = getKey(h,w);
     displaying_charts[key] = {...idx};
     let div = document.getElementById(key);
@@ -59,7 +60,7 @@ export function updateSingleLinechart(h,w,idx,grid_pix,pos_pix) {
     if(dataset[currentTime.value-timeStart].value>0.5) stroke = PARA.lineColorLight;
 
     const xScale = d3.scaleLinear()
-        .domain([timeStart,timeEnd+1])
+        .domain([timeStart,timeEnd])
         .range([0, PARA.chartSize_normal_pix.w*ratio]); 
     const yScale = d3.scaleLinear()
         .domain([0, 1])  
@@ -71,30 +72,35 @@ export function updateSingleLinechart(h,w,idx,grid_pix,pos_pix) {
                   .attr("width",grid_pix.w)
                   .attr("height",grid_pix.h)
                 .select("g");
-
+    const chartTranslate = {
+        'h':(grid_pix.h-PARA.chartSize_normal_pix.h*ratio)/2,
+        'w':(grid_pix.w-PARA.chartSize_normal_pix.w*ratio)/2
+    };
     const chartGroup = svg.select("g")
                           .attr("stroke",formatColor(stroke))
-                          .attr("transform",`translate(${PARA.chartMargin_normal_pix*ratio},${PARA.chartMargin_normal_pix*ratio})`);
-    //chartGroup.select("#x_axis")
-    //          .attr("transform",`translate(0,${PARA.chartSize_normal_pix.h*ratio})`)
-    //          .call(d3.axisBottom(xScale).ticks(Math.floor((timeEnd-timeStart+1)/5)))
-    //          .style("color",formatColor(stroke))
-    //          .selectAll("text")
-    //              .attr("transform", "translate(5,0)rotate(0)")
-    //              .style("text-anchor", "end")
-    //              .style("font-size", PARA.linechart_axisTickFontSize.x*ratio); 
-    //chartGroup.select("#y_axis")
-    //          .call(d3.axisLeft(yScale))
-    //          .style("color",formatColor(stroke))
-    //          .selectAll("text")
-    //              .attr("transform", "translate(2,0)rotate(0)")
-    //              .style("text-anchor", "end")
-    //              .style("font-size", PARA.linechart_axisTickFontSize.y*ratio);
+                          .attr("transform",`translate(${chartTranslate.w},${chartTranslate.h})`);
+    chartGroup.select("#x_axis")
+              .attr("transform",`translate(0,${PARA.chartSize_normal_pix.h*ratio})`)
+              .call(d3.axisBottom(xScale).ticks(Math.floor((timeEnd-timeStart))).tickSize(-PARA.chartSize_normal_pix.h*ratio).tickFormat(""))
+              .style("color",formatColor(stroke))
+              .style("stroke-opacity","0.3")
+              //.selectAll("text")
+              //    .attr("transform", "translate(5,0)rotate(0)")
+              //    .style("text-anchor", "end")
+              //    .style("font-size", PARA.linechart_axisTickFontSize.x*ratio); 
+    chartGroup.select("#y_axis")
+              .call(d3.axisLeft(yScale).ticks(5).tickSize(-PARA.chartSize_normal_pix.w*ratio).tickFormat(""))
+              .style("color",formatColor(stroke))
+              .style("stroke-opacity","0.3")
+              //.selectAll("text")
+              //    .attr("transform", "translate(2,0)rotate(0)")
+              //    .style("text-anchor", "end")
+              //    .style("font-size", PARA.linechart_axisTickFontSize.y*ratio);
     chartGroup.select("#line")
               .datum(dataset)
               .attr("d",line)
               .attr("fill","none")
-              .attr("stroke_width",PARA.linechart_lineWidth_pix);
+              .style("stroke-width",PARA.linechart_lineWidth_pix);
     chartGroup.selectAll(".dot")
                 .data(dataset)
                 .attr("fill",formatColor(stroke))
@@ -110,6 +116,8 @@ export function updateSingleLinechart(h,w,idx,grid_pix,pos_pix) {
                     const color = d.time==currentTime.value?PARA.highlightColor:stroke;
                     return formatColor(color); 
                 })
+                .style("stroke-width","3")
+                .style("stroke-opacity","0.5")
                 .on("click",function(d) {
                     //d3.select(this)
                     //    .style("fill",formatColor(PARA.highlightColor))
