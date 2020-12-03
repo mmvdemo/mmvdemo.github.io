@@ -9,7 +9,7 @@ import {highlightManager} from "./highlight.js";
 import {mouseTracker,mouseTracker_mousemoveHandle} from "./tracking.js";
 
 let contextRadius = 1;
-let d=10;
+let d=5;
 //let focusPos = {'h':-1,'w':-1};
 //let currentPos = {'h':-1,'w':-1};
 let quad;
@@ -182,7 +182,7 @@ function bodyListener(evt) {
 export function loadCartesianLens() {
     let sliderInfo = [];
     let d_para = {
-        "defaultValue":10,
+        "defaultValue":d,
         "max":20,
         "min":1,
         "id":"d",

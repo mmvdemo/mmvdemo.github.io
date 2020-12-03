@@ -7,7 +7,7 @@ import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./lin
 import {highlightManager} from "./highlight.js";
 import {mouseTracker} from "./tracking.js";
 // for table lens
-let focalScale = 10;
+let focalScale = 7;
 let contextRadius=1;
 let quad;
 let gridLineObj;
@@ -285,7 +285,7 @@ function init(s) {
     style_flag = s;
     let sliderInfo = [];
     let scale_para = {
-        "defaultValue":10,
+        "defaultValue":focalScale,
         "max":20,
         "min":1,
         "id":"tablelensScale",
