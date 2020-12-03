@@ -153,7 +153,7 @@ export function loadCartesianLens() {
     };
     sliderInfo.push(time_para);
     initSliders(sliderInfo);
-    
+   
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
     quad = initGridMesh(PARA.table.h,PARA.table.w,backgroundTexture); 
     

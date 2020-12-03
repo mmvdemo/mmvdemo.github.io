@@ -1,6 +1,7 @@
 //color
 export const backgroundColor = 0xF5F5F5;
-export const gridLineColor = 0xF5F5F5;
+//export const gridLineColor = 0xF5F5F5;
+export const gridLineColor = 0x2E4053;
 export const headColor = 0x85C1E9; 
 export const nodeColor = 0x1ABC9C;
 export const selectColor = 0xE74C3C;
@@ -28,9 +29,9 @@ export const interval = 1;
 export const timeout = 3;
 export const DEBUG_recordingTimeout = 10;
 export const DEBUG_printData_SpaceAlign = 40;
-export function loadParameters() {
-    table.h=nodeCnt;
-    table.w=nodeCnt;
+export function loadParameters(nrows,ncols) {
+    table.h=nrows;
+    table.w=ncols;
     step_pix.h=stage_pix.h/table.h;
     step_pix.w=stage_pix.w/table.w;
 }
