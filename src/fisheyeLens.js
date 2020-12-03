@@ -296,12 +296,6 @@ function updateLinecharts(h,w) {
         'w':Math.floor(distort.w/2)
     };
     const focusIdx={'h':h,'w':w};
-    //if(contextRadius>0) {
-    //    if(focus.h<center.h ) {focus.h+=1;focusIdx.h+=1;}
-    //    else if(focus.h>center.h) {focus.h-=1;focusIdx.h-=1;}
-    //    if(focus.w<center.w ) {focus.w+=1;focusIdx.w+=1;}
-    //    else if(focus.w>center.w) {focus.w-=1;focusIdx.w-=1;}
-    //}
     if(focus.h<contextRadius) {
         const delta = contextRadius-focus.h;
         focus.h+=delta;
@@ -311,7 +305,15 @@ function updateLinecharts(h,w) {
         focus.h-=delta;
         focusIdx.h-=delta;
     }
-
+    if(focus.w<contextRadius) {
+        const delta = contextRadius-focus.w;
+        focus.w+=delta;
+        focusIdx.w+=delta;
+    } else if(focus.w+contextRadius>=distort.w) {
+        const delta = focus.w-(distort.w-1-contextRadius);
+        focus.w-=delta;
+        focusIdx.w-=delta;
+    }
     let cr = Math.min(contextRadius,Math.floor((distort.h-1)/2));
     const lensOrigin = getLensOrigin(style_flag,h,w);
     const canvas = document.getElementById("canvas");

@@ -7,6 +7,8 @@ import {GridLineObject} from "./gridLines.js";
 import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./linechart.js";
 import {highlightManager} from "./highlight.js";
 import {mouseTracker,mouseTracker_mousemoveHandle} from "./tracking.js";
+
+let contextRadius = 1;
 let d=10;
 //let focusPos = {'h':-1,'w':-1};
 //let currentPos = {'h':-1,'w':-1};
@@ -77,29 +79,72 @@ function getVerticePositionsByGrid(pos1,pos2) {
     return array;
 }
 function initLinecharts() {
-    initSingleLinechart(0,0); 
+    //initSingleLinechart(0,0); 
+    for(let i=0;i<=2*contextRadius;i++) {
+        for(let j=0;j<=2*contextRadius;j++) {
+            initSingleLinechart(i,j);
+        }
+    }
 }
+//function updateLinecharts(h,w) {
+//    const buffer = quad.geometry.getBuffer('aVertexPosition');
+//    let grid_pix = {
+//        'h':buffer.data[2*bufferIndex(h+1,w)+1]-buffer.data[2*bufferIndex(h,w)+1],
+//        'w':buffer.data[2*bufferIndex(h,w+1)]-buffer.data[2*bufferIndex(h,w)]
+//    };
+//    let pos = {'h':h,'w':w};
+//    let pos_pix = {
+//        'h':buffer.data[2*bufferIndex(h,w)+1],
+//        'w':buffer.data[2*bufferIndex(h,w)]
+//    };
+//   
+//    const canvas = document.getElementById("canvas");
+//    const rect = canvas.getBoundingClientRect();
+//
+//    pos_pix.h += rect.top + window.scrollY;
+//    pos_pix.w += rect.left + window.scrollX;
+//
+//    updateSingleLinechart(0,0,pos,grid_pix,pos_pix);
+//}
 function updateLinecharts(h,w) {
-    const buffer = quad.geometry.getBuffer('aVertexPosition');
-    let grid_pix = {
-        'h':buffer.data[2*bufferIndex(h+1,w)+1]-buffer.data[2*bufferIndex(h,w)+1],
-        'w':buffer.data[2*bufferIndex(h,w+1)]-buffer.data[2*bufferIndex(h,w)]
-    };
-    let pos = {'h':h,'w':w};
-    let pos_pix = {
-        'h':buffer.data[2*bufferIndex(h,w)+1],
-        'w':buffer.data[2*bufferIndex(h,w)]
-    };
-   
     const canvas = document.getElementById("canvas");
     const rect = canvas.getBoundingClientRect();
-
-    pos_pix.h += rect.top + window.scrollY;
-    pos_pix.w += rect.left + window.scrollX;
-
-    updateSingleLinechart(0,0,pos,grid_pix,pos_pix);
+    const translate = {
+        'h':rect.top+window.scrollY,
+        'w':rect.left+window.scrollX
+    };
+    const buffer = quad.geometry.getBuffer('aVertexPosition');
+    const focusIdx = {'h':h,'w':w};
+    if(focusIdx.h<contextRadius) {
+        focusIdx.h = contextRadius;
+    }else if(focusIdx.h+contextRadius>=PARA.table.h) {
+        focusIdx.h = PARA.table.h-1-contextRadius;
+    }
+    if(focusIdx.w<contextRadius) {
+        focusIdx.w = contextRadius;
+    }else if(focusIdx.w+contextRadius>=PARA.table.w) {
+        focusIdx.w = PARA.table.w-1-contextRadius;
+    }
+    for(let i=0;i<=2*contextRadius;i++) {
+        for(let j=0;j<=2*contextRadius;j++) {
+            const pos = {
+                'h':focusIdx.h-contextRadius+i,
+                'w':focusIdx.w-contextRadius+j
+            };
+            const grid_pix = {
+                'h':buffer.data[2*bufferIndex(pos.h+1,pos.w)+1]-buffer.data[2*bufferIndex(pos.h,pos.w)+1],
+                'w':buffer.data[2*bufferIndex(pos.h,pos.w+1)]-buffer.data[2*bufferIndex(pos.h,pos.w)]
+            };
+            const pos_pix = {
+                'h':buffer.data[2*bufferIndex(pos.h,pos.w)+1],
+                'w':buffer.data[2*bufferIndex(pos.h,pos.w)]
+            };
+            pos_pix.h+=translate.h;
+            pos_pix.w+=translate.w;
+            updateSingleLinechart(i,j,pos,grid_pix,pos_pix);
+        }
+    }
 }
-
 function d_sliderHandle() {
     let text = document.getElementById("d-text");
     let slider = document.getElementById("d");
