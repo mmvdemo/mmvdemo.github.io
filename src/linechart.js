@@ -146,4 +146,9 @@ export function destroyLinecharts() {
         document.body.removeChild(linechartDiv[0]);
     }
 }
-
+export function hideLinecharts() {
+    for(let key of Object.keys(displaying_charts)) {
+        let svg = d3.select("#"+key).select("svg");
+        svg.attr("visibility","hidden");
+    }
+}

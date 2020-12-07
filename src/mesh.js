@@ -100,4 +100,14 @@ export function initMesh(geometry,texture) {
     const quad = new PIXI.Mesh(geometry,shader);
     return quad;
 }
-
+export function restoreGridMesh(mesh,size,grid_pix) {
+    const buffer = mesh.geometry.getBuffer('aVertexPosition');
+    let bufferIndex = function(h,w) {return h*(size.w+1)+w};
+    for(let h=0;h<=size.h;h++) {
+        for(let w=0;w<=size.w;w++) {
+            buffer.data[2*bufferIndex(h,w)+1]=h*grid_pix.h;
+            buffer.data[2*bufferIndex(h,w)]=w*grid_pix.w;
+        }
+    }
+    buffer.update();
+}

@@ -1,9 +1,10 @@
 import * as PARA from "./parameters.js";
+import * as UTILS from "./utils.js";
 import {time_sliderHandle,initSliders,clearSliders} from "./slider.js";
-import {getMeshPos,initGridMesh} from "./mesh.js";
+import {getMeshPos,initGridMesh,restoreGridMesh} from "./mesh.js";
 import {GridLineObject} from "./gridLines.js";
 import {createBackgroundTexture} from "./texture.js";
-import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./linechart.js";
+import {initSingleLinechart,updateSingleLinechart,destroyLinecharts,hideLinecharts} from "./linechart.js";
 import {highlightManager} from "./highlight.js";
 import {mouseTracker} from "./tracking.js";
 // for table lens
@@ -73,7 +74,12 @@ function initMaskSprite() {
         maskSprites.vert_down.push(sprite);
     }
 }
-
+function setMasksVisibility(visible) {
+    for(let mask of maskSprites['hori_left']) {mask.visible = visible;}
+    for(let mask of maskSprites['hori_right']) {mask.visible = visible;}
+    for(let mask of maskSprites['vert_up']) {mask.visible = visible;}
+    for(let mask of maskSprites['vert_down']) {mask.visible = visible;}
+}
 function binSearch(n,s,lo,hi) {
     const sum = transfer(doi,focusPos[s],PARA.table[s]);
     const ratio = PARA.stage_pix[s]/sum;
@@ -89,6 +95,7 @@ function binSearch(n,s,lo,hi) {
 }
 function bufferIndex(h,w) {return h*(PARA.table.w+1)+w;}
 function updateQuad(h,w) {
+    if(style_flag==="STEP") setMasksVisibility(true);
     const sum = {
         'h':transfer(doi,h,PARA.table.h),
         'w':transfer(doi,w,PARA.table.w)};
@@ -108,6 +115,13 @@ function updateQuad(h,w) {
     buffer.update();
     updateGridLine();
     highlightManager.updateAll();
+};
+function restoreQuad() {
+    restoreGridMesh(quad,PARA.table,PARA.step_pix);
+    updateGridLine();
+    highlightManager.updateAll();
+    hideLinecharts();
+    if(style_flag==="STEP") {setMasksVisibility(false);}
 };
 function updateGridLine() {
     const buffer = quad.geometry.getBuffer('aVertexPosition');
@@ -265,14 +279,15 @@ function changeCurrentTimeHandle() {
     updateLinecharts(focusPos.h,focusPos.w);
 }
 function bodyListener(evt) {
-    const canvas = document.getElementById("canvas");
-    const rect = canvas.getBoundingClientRect();
-    const mouseOnCanvas = {'h':evt.clientY-rect.top,'w':evt.clientX-rect.left};
+    const mouseOnCanvas = UTILS.getMouseOnCanvas(evt);
+    if(mouseOnCanvas.h<0||mouseOnCanvas.w<0||mouseOnCanvas.h>PARA.stage_pix.h||mouseOnCanvas.w>PARA.stage_pix.w) {
+        restoreQuad();
+        return;
+    }
     //let w = Math.floor(mouseOnCanvas.w/PARA.step_pix.w);
     //let h = Math.floor(mouseOnCanvas.h/PARA.step_pix.h);
     let w = binSearch(mouseOnCanvas.w,'w',0,PARA.table.w);
     let h= binSearch(mouseOnCanvas.h,'h',0,PARA.table.h);
-    //console.log(`h=${h},w=${w}`);
     w = Math.max(contextRadius,Math.min(PARA.table.w-contextRadius-1,w));
     h = Math.max(contextRadius,Math.min(PARA.table.h-contextRadius-1,h));
     updateQuad(h,w);
@@ -318,7 +333,6 @@ function init(s) {
 
     const container = new PIXI.Container();
     container.interactive = true;
-    //let canvas = document.getElementById("mycanvas");
     let canvas = document.createElement("canvas");
     canvas.id = "canvas";
     canvas.style.position = "absolute";
@@ -342,7 +356,7 @@ function init(s) {
     if(style_flag=="STEP") {
         initMaskSprite();
     }
-    document.body.addEventListener('mousemove',bodyListener);
+    document.addEventListener('mousemove',bodyListener);
     highlightManager.registerGetPosHandle(getVerticePositionsByGrid);
     highlightManager.loadTo(container);
 
@@ -359,14 +373,14 @@ export function loadTableLens_step() {
     init("STEP"); 
 }
 export function destroyTableLens_stretch() {
-    document.body.removeEventListener("mousemove",bodyListener);
+    document.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
     destroyLinecharts();
     highlightManager.unregisterGetPosHandle();
 }
 export function destroyTableLens_step() {
-    document.body.removeEventListener("mousemove",bodyListener);
+    document.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
     destroyLinecharts();

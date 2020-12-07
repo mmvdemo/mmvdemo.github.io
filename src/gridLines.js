@@ -36,7 +36,10 @@ export class GridLineObject {
         }
         container.removeChildren();
     }
-    
+    setVisibility(visible) {
+        for(let i=0;i<this.h;i++) {this.horiLines[i].visible = visible;}
+        for(let j=0;j<this.w;j++) {this.vertLines[j].visible=visible;}
+    }
     updatePosByVertice(array) {
         for(let i=0;i<this.h;i++) {
             const mesh = this.horiLines[i];

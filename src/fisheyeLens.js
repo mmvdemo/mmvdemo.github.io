@@ -1,9 +1,10 @@
 import * as PARA from "./parameters.js";
+import * as UTILS from "./utils.js";
 import {time_sliderHandle,initSliders,clearSliders} from "./slider.js";
 import {createBackgroundTexture} from "./texture.js";
-import {getMeshPos,initGridMesh,initMesh} from "./mesh.js";
+import {getMeshPos,initGridMesh,initMesh,restoreGridMesh} from "./mesh.js";
 import {GridLineObject} from "./gridLines.js";
-import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./linechart.js";
+import {initSingleLinechart,updateSingleLinechart,destroyLinecharts,hideLinecharts} from "./linechart.js";
 import {highlightManager} from "./highlight.js";
 import {mouseTracker} from "./tracking.js";
 
@@ -220,6 +221,7 @@ function correctFlip() {
     buffer.update();
 }
 function updateQuad_inside(h,w) {
+    quad.visible = true;
     currentPos={'h':h,'w':w};
     focusPos = {...currentPos};
     const lensOrigin = getLensOrigin("INSIDE",h,w);;
@@ -271,6 +273,7 @@ function updateLensGridLine() {
     lensGridLineObj.updatePosByVertice(posArray_pix);
 }
 function updateQuad_outside(h,w) {
+    quad.visible = true;
     currentPos = {'h':h,'w':w};
     focusPos = {...currentPos};
     const lensOrigin =getLensOrigin("OUTSIDE",h,w);
@@ -405,11 +408,14 @@ function changeCurrentTimeHandle() {
     updateLinecharts(focusPos.h,focusPos.w);
 }
 function bodyListener(evt) {
-    const canvas = document.getElementById("canvas");
-    const rect = canvas.getBoundingClientRect();
-    const mouseOnCanvas = {'h':evt.clientY-rect.top,'w':evt.clientX-rect.left};
-    if(mouseOnCanvas.w<0||mouseOnCanvas.h<0||mouseOnCanvas.w>PARA.stage_pix.w+2*container.x||mouseOnCanvas.h>PARA.stage_pix.h+2*container.y){return;}
-    
+    const mouseOnCanvas = UTILS.getMouseOnCanvas(evt);
+    if(mouseOnCanvas.w<0||mouseOnCanvas.h<0||mouseOnCanvas.w>PARA.stage_pix.w+2*container.x||mouseOnCanvas.h>PARA.stage_pix.h+2*container.y){
+        quad.visible = false;
+        lensGridLineObj.setVisibility(false);
+        hideLinecharts();
+        return;
+    }
+    lensGridLineObj.setVisibility(true);  
     mouseOnCanvas.h -= container.y;
     mouseOnCanvas.w -= container.x;
     let w = Math.floor((mouseOnCanvas.w)/PARA.step_pix.w);
@@ -502,7 +508,7 @@ function init(s) {
     initLinecharts();
     currentTime.setHandle = changeCurrentTimeHandle;
 
-    document.body.addEventListener('mousemove',bodyListener);
+    document.addEventListener('mousemove',bodyListener);
 
     highlightManager.registerGetPosHandle(getVerticePositionsByGrid);
     highlightManager.loadTo(container);
@@ -521,7 +527,7 @@ export function loadFisheyeLens_outside() {
 }
 export function destroyFisheyeLens_inside() {
     lensGridLineObj.destroy(lensGridLineContainer);
-    document.body.removeEventListener("mousemove",bodyListener);
+    document.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
     destroyLinecharts();
@@ -529,7 +535,7 @@ export function destroyFisheyeLens_inside() {
 }
 export function destroyFisheyeLens_outside() {
     lensGridLineObj.destroy(lensGridLineContainer);
-    document.body.removeEventListener("mousemove",bodyListener);
+    document.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
     destroyLinecharts();

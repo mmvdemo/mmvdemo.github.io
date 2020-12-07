@@ -1,10 +1,10 @@
 import * as PARA from "./parameters.js";
 import * as UTILS from "./utils.js";
 import {time_sliderHandle,initSliders,clearSliders} from "./slider.js";
-import {getMeshPos,initGridMesh} from "./mesh.js";
+import {getMeshPos,initGridMesh,restoreGridMesh} from "./mesh.js";
 import {createBackgroundTexture} from "./texture.js";
 import {GridLineObject} from "./gridLines.js";
-import {initSingleLinechart,updateSingleLinechart,destroyLinecharts} from "./linechart.js";
+import {initSingleLinechart,updateSingleLinechart,destroyLinecharts,hideLinecharts} from "./linechart.js";
 import {highlightManager} from "./highlight.js";
 import {mouseTracker,mouseTracker_mousemoveHandle} from "./tracking.js";
 
@@ -64,6 +64,12 @@ function updateQuad(h,w) {
     updateGridLine();
     highlightManager.updateAll();
 };
+function restoreQuad() {
+    restoreGridMesh(quad,PARA.table,PARA.step_pix);
+    updateGridLine();
+    highlightManager.updateAll();
+    hideLinecharts();
+};
 function updateGridLine() {
     //according to current quad
     const buffer = quad.geometry.getBuffer('aVertexPosition');
@@ -79,33 +85,12 @@ function getVerticePositionsByGrid(pos1,pos2) {
     return array;
 }
 function initLinecharts() {
-    //initSingleLinechart(0,0); 
     for(let i=0;i<=2*contextRadius;i++) {
         for(let j=0;j<=2*contextRadius;j++) {
             initSingleLinechart(i,j);
         }
     }
 }
-//function updateLinecharts(h,w) {
-//    const buffer = quad.geometry.getBuffer('aVertexPosition');
-//    let grid_pix = {
-//        'h':buffer.data[2*bufferIndex(h+1,w)+1]-buffer.data[2*bufferIndex(h,w)+1],
-//        'w':buffer.data[2*bufferIndex(h,w+1)]-buffer.data[2*bufferIndex(h,w)]
-//    };
-//    let pos = {'h':h,'w':w};
-//    let pos_pix = {
-//        'h':buffer.data[2*bufferIndex(h,w)+1],
-//        'w':buffer.data[2*bufferIndex(h,w)]
-//    };
-//   
-//    const canvas = document.getElementById("canvas");
-//    const rect = canvas.getBoundingClientRect();
-//
-//    pos_pix.h += rect.top + window.scrollY;
-//    pos_pix.w += rect.left + window.scrollX;
-//
-//    updateSingleLinechart(0,0,pos,grid_pix,pos_pix);
-//}
 function updateLinecharts(h,w) {
     const canvas = document.getElementById("canvas");
     const rect = canvas.getBoundingClientRect();
@@ -164,6 +149,10 @@ function changeCurrentTimeHandle() {
 }
 function bodyListener(evt) {
     const mouseOnCanvas = UTILS.getMouseOnCanvas(evt); 
+    if(mouseOnCanvas.h<0||mouseOnCanvas.w<0||mouseOnCanvas.h>PARA.stage_pix.h||mouseOnCanvas.w>PARA.stage_pix.w) {
+        restoreQuad();
+        return;
+    }
     let h,w;
     if(focusPos.h<0 || focusPos.w<0) {
         w = Math.floor(mouseOnCanvas.w/PARA.step_pix.w);
@@ -172,10 +161,7 @@ function bodyListener(evt) {
         w = binSearch(mouseOnCanvas.w,'w',0,PARA.table.w);
         h = binSearch(mouseOnCanvas.h,'h',0,PARA.table.h);
     }
-    //console.log(`h=${h},w=${w}`);
-    if(w<0||h<0||w>=PARA.table.w+1||h>=PARA.table.h+1) {
-        return;
-    }
+    
     updateQuad(h,w);
     updateLinecharts(h,w);
 }
@@ -221,7 +207,7 @@ export function loadCartesianLens() {
     initLinecharts();
     currentTime.setHandle = changeCurrentTimeHandle;
     
-    document.body.addEventListener('mousemove',bodyListener);
+    document.addEventListener('mousemove',bodyListener);
     
     highlightManager.registerGetPosHandle(getVerticePositionsByGrid);
     highlightManager.loadTo(container);
@@ -234,7 +220,7 @@ export function loadCartesianLens() {
 }
 export function destroyCartesianLens() {
     //mouseTracker.pause();
-    document.body.removeEventListener("mousemove",bodyListener);
+    document.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
     destroyLinecharts();
