@@ -9,8 +9,8 @@ import {highlightManager} from "./highlight.js";
 import {mouseTracker} from "./tracking.js";
 
 let contextRadius = 1; 
-let distort = {'h':19,'w':19};
-let d = 8;
+let distort = {'h':9,'w':9};
+let d = 5;
 let distort_pix = {'h':distort.h*PARA.step_pix.h,'w':distort.w*PARA.step_pix.w};
 let app;
 let backgroundQuad,quad;
@@ -23,7 +23,8 @@ function createFisheyeGeometry() {
     const f = {'h':distort.h/2,'w':distort.w/2};
     for(let h=0;h<=distort.h;h++) {
         for(let w=0;w<=distort.w;w++) {
-            let pos = getPolarPosition(h,w,f); 
+            const result = getPolarPosition(h,w,f); 
+            const pos = result.pos_pix;
             pos_list.push(pos.w);
             pos_list.push(pos.h);
             pos_list_uv.push(w/distort.w);
@@ -81,6 +82,7 @@ function getPolarPosition(h,w,f) {
             beta_buf['vertical'] = (w-f.w)/(distort.w-f.w);
         }
     }
+    const dir = beta_buf['horizontal']>beta_buf['vertical']?'horizontal':'vertical';
     let beta = Math.max(beta_buf['horizontal'],beta_buf['vertical']);
     //let scale = h1(beta);
     //let pos = {
@@ -97,7 +99,7 @@ function getPolarPosition(h,w,f) {
             'w':(f.w+ scale*(w-f.w)/beta)*PARA.step_pix.w
         };
     }
-    return pos_pix;
+    return {'pos_pix':pos_pix,'dir':dir};
 }
 function getFocusInQuad(s,h,w) {
     const f = {
@@ -199,6 +201,33 @@ function alignFocusGrid(f) {
     buffer.data[2*bufferIndex(f.h+1,f.w+1)] = focusBox.pos2.w;
     buffer.update();
 }
+function alignGrids(bound) {
+    const buffer = quad.geometry.getBuffer("aVertexPosition");
+    const pos_pix = [];
+    for(let i=2;i<4;i++) {
+        for(let j=0;j<2;j++) {
+            const idx = bufferIndex(bound[i],bound[j]);
+            pos_pix.push({'h':buffer.data[2*idx+1],'w':buffer.data[2*idx]});
+        }
+    }
+    const bound_pix = [];
+    // TODO: min?max?
+    bound_pix.push(Math.min(pos_pix[0].w,pos_pix[2].w));
+    bound_pix.push(Math.max(pos_pix[1].w,pos_pix[3].w));
+    bound_pix.push(Math.min(pos_pix[0].h,pos_pix[1].h));
+    bound_pix.push(Math.max(pos_pix[2].h,pos_pix[3].h));
+    ////console.log(bound);
+    const length = {'left_right':bound[1]-bound[0],'up_down':bound[3]-bound[2]};
+    for(let i=bound[2];i<=bound[3];i++) {
+        const h = bound_pix[2]+(i-bound[2])*(bound_pix[3]-bound_pix[2])/(length.up_down);
+        for(let j=bound[0];j<=bound[1];j++) {
+            const w = bound_pix[0]+(j-bound[0])*(bound_pix[1]-bound_pix[0])/(length.left_right);
+            buffer.data[2*bufferIndex(i,j)+1] = h;
+            buffer.data[2*bufferIndex(i,j)] = w;
+        }
+    }
+    buffer.update();
+}
 function correctFlip() {
     const buffer = quad.geometry.getBuffer('aVertexPosition');
     for(let i=0;i<distort.h;i++) {
@@ -230,19 +259,100 @@ function updateQuad_inside(h,w) {
     lensContainer.position.set(lensOrigin.w * PARA.step_pix.w,lensOrigin.h * PARA.step_pix.h);
     const f = getFocusInQuad("INSIDE",h,w); 
     const buffer = quad.geometry.getBuffer('aVertexPosition');
+    const dirMatrix = [];
+    //console.log(`----------------------`);
+    //console.log(f);
     for(let i=0;i<=distort.h;i++) {
+        let row = "";
         for(let j=0;j<=distort.w;j++) {
-            let pos = getPolarPosition(i,j,f); 
-            buffer.data[2*bufferIndex(i,j)+1] =pos.h;
-            buffer.data[2*bufferIndex(i,j)] =pos.w;
+            const result = getPolarPosition(i,j,f); 
+            const pos_pix = result.pos_pix;
+            dirMatrix.push(result.dir);
+            row+=`${result.dir[0]} `;
+            buffer.data[2*bufferIndex(i,j)+1] =pos_pix.h;
+            buffer.data[2*bufferIndex(i,j)] =pos_pix.w;
         }
+        //console.log(row);
     }
+    //console.log(`----------------------`);
     buffer.update();
-    alignFocusGrid(f);
-    correctFlip();
+    //alignFocusGrid(f);
+    const bound = getPlateBound(f,dirMatrix);
+    alignGrids(bound);
+    //correctFlip();
     highlightManager.updateAll();
     updateLensGridLine();
 };
+function getPlateBound(f,dirMatrix) {
+    f.h = Math.min(distort.h-1,Math.floor(f.h));
+    f.w = Math.min(distort.w-1,Math.floor(f.w));
+    const hori = [];
+    const vert = [];
+    for(let i=0;i<=distort.h;i++) {
+        let bounds = [];
+        for(let j=0;j<distort.w;j++) {
+            if(dirMatrix[i*(distort.w+1)+j]!==dirMatrix[i*(distort.w+1)+j+1]) {
+                bounds.push(j);
+            }
+        }
+        if(bounds.length==0) {
+            if(Math.abs(i-f.h)<=contextRadius) {
+                const fw = Math.min(distort.w-contextRadius, Math.max(contextRadius,f.w));
+                bounds.push(fw-contextRadius);
+                bounds.push(fw+contextRadius);
+                //bounds.push(f.w-contextRadius);bounds.push(f.w+contextRadius)
+            }
+            else {bounds.push(-1);bounds.push(distort.w+1);}
+        } else if(bounds.length==1) {
+            if(f.w>distort.w/2) {
+                bounds.push(distort.w);
+            } else {
+                bounds = [0].concat(bounds);
+            }
+        }
+        //console.log(bounds);
+        hori.push(bounds);
+    }
+
+    for(let j=0;j<=distort.w;j++) {
+        const bounds = [];
+        for(let i=0;i<distort.h;i++) {
+            if(dirMatrix[i*(distort.h+1)+j]!==dirMatrix[(i+1)*(distort.h+1)+j]) {bounds.push(i);}
+        }
+        if(bounds.length==0) {
+            if(Math.abs(j-f.w)<=contextRadius) {bounds.push(f.h);bounds.push(f.h);}
+            else {bounds.push(-1);bounds.push(distort.h+1);}
+        }
+        vert.push(bounds);
+    }
+    function getBound(array,side_flag) {
+        const ans = [-1,-1];
+        let last_dis = side_flag==="left_right"?distort.w+3:distort.h+3;
+        const iter_side = side_flag==="left_right"?'h':'w';
+        for(let i=0;i<=distort[iter_side];i++) {
+            const dis = array[i][1]-array[i][0];
+            if(ans[0]<0 && dis<last_dis && dis<=2*contextRadius+1) {
+                ans[0]=i;
+            } else if(ans[1]<0 && dis>last_dis && dis>2*contextRadius+1) {
+                ans[1]=i-1;
+            }
+            last_dis = dis;
+        }
+        return ans;
+    }
+    const left_right_bound = getBound(hori,'left_right');
+    //console.log(`left_right_bound:`);
+    //console.log(left_right_bound);
+    const up_down_bound = [Math.min(hori[left_right_bound[0]][0],hori[left_right_bound[1]][0]),Math.max(hori[left_right_bound[0]][1],hori[left_right_bound[1]][1])];
+    //const up_down_bound = getBound(vert,'up_down');
+    const bound = up_down_bound.concat(left_right_bound);
+    
+    //console.log(`up_down_bound:`);
+    //console.log(up_down_bound);
+    //console.log(`bound:`);
+    //console.log(bound);
+    return bound;
+}
 function getVerticePositionsByGrid(pos1,pos2) {
     const quadSize = {'h':PARA.table.h+1,'w':PARA.table.w+1};
     const array = getMeshPos(backgroundQuad,quadSize,pos1,{'h':pos2.h+1,'w':pos2.w+1}); 
@@ -434,7 +544,7 @@ function bodyListener(evt) {
     }
     w = Math.max(0,Math.min(PARA.table.w-1,w)); 
     h = Math.max(0,Math.min(PARA.table.h-1,h));
-    //console.log(`h = ${h}, w = ${w}`);
+    ////console.log(`h = ${h}, w = ${w}`);
     if(style_flag==="INSIDE") {
         updateQuad_inside(h,w);
     } else if (style_flag==="OUTSIDE") {
