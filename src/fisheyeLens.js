@@ -555,32 +555,7 @@ function bodyListener(evt) {
 
 function init(s) {
     style_flag = s;
-    let sliderInfo = [];
-    let distort_para = {
-        "defaultValue":distort.h,
-        "max":50,
-        "min":1,
-        "id":"distort",
-        "oninputHandle":distort_sliderHandle
-    };
-    sliderInfo.push(distort_para);
-    let d_para = {
-        "defaultValue":d,
-        "max":16,
-        "min":1,
-        "id":"d",
-        "oninputHandle":d_sliderHandle
-    };
-    sliderInfo.push(d_para);
-    let time_para = {
-        "defaultValue":currentTime.getCurrent,
-        "max":timeEnd,
-        "min":timeStart,
-        "id":"currentTime",
-        "oninputHandle":time_sliderHandle
-    };
-    sliderInfo.push(time_para);
-    initSliders(sliderInfo);
+    
 
     distort_pix = {'h':distort.h*PARA.step_pix.h,'w':distort.w*PARA.step_pix.w};
     let EP = (s==="OUTSIDE") ? Math.max(distort_pix.h,distort_pix.w)/2:0;
@@ -619,6 +594,33 @@ function init(s) {
     currentTime.setHandle = changeCurrentTimeHandle;
 
     document.addEventListener('mousemove',bodyListener);
+
+    let sliderInfo = [];
+    //let distort_para = {
+    //    "defaultValue":distort.h,
+    //    "max":50,
+    //    "min":1,
+    //    "id":"distort",
+    //    "oninputHandle":distort_sliderHandle
+    //};
+    //sliderInfo.push(distort_para);
+    //let d_para = {
+    //    "defaultValue":d,
+    //    "max":16,
+    //    "min":1,
+    //    "id":"d",
+    //    "oninputHandle":d_sliderHandle
+    //};
+    //sliderInfo.push(d_para);
+    let time_para = {
+        "defaultValue":currentTime.getCurrent,
+        "max":timeEnd,
+        "min":timeStart,
+        "id":"currentTime",
+        "oninputHandle":time_sliderHandle
+    };
+    sliderInfo.push(time_para);
+    initSliders(sliderInfo);
 
     highlightManager.registerGetPosHandle(getVerticePositionsByGrid);
     highlightManager.loadTo(container);

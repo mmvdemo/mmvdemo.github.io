@@ -298,36 +298,9 @@ function bodyListener(evt) {
 }
 function init(s) {
     style_flag = s;
-    let sliderInfo = [];
-    let scale_para = {
-        "defaultValue":focalScale,
-        "max":20,
-        "min":1,
-        "id":"tablelensScale",
-        "oninputHandle":scale_sliderHandle
-    };
-    sliderInfo.push(scale_para);
-    let contextLength_para = {
-        "defaultValue":contextRadius*2+1,
-        "max":5,
-        "min":1,
-        "id":"contextLength",
-        "oninputHandle":contextLength_sliderHandle
-    };
-    sliderInfo.push(contextLength_para);
-    let time_para = {
-        "defaultValue":currentTime.getCurrent,
-        "max":timeEnd,
-        "min":timeStart,
-        "id":"currentTime",
-        "oninputHandle":time_sliderHandle
-    };
-    sliderInfo.push(time_para);
-    initSliders(sliderInfo);
-
-    focalScale = scale_para.defaultValue;
+    //focalScale = scale_para.defaultValue;
     //contextRadius = Math.floor(contextLength_para.defaultValue/2);
-
+    
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
     quad = initGridMesh(PARA.table.h,PARA.table.w,backgroundTexture); 
 
@@ -357,6 +330,35 @@ function init(s) {
         initMaskSprite();
     }
     document.addEventListener('mousemove',bodyListener);
+    
+    let sliderInfo = [];
+    //let scale_para = {
+    //    "defaultValue":focalScale,
+    //    "max":20,
+    //    "min":1,
+    //    "id":"tablelensScale",
+    //    "oninputHandle":scale_sliderHandle
+    //};
+    //sliderInfo.push(scale_para);
+    //let contextLength_para = {
+    //    "defaultValue":contextRadius*2+1,
+    //    "max":5,
+    //    "min":1,
+    //    "id":"contextLength",
+    //    "oninputHandle":contextLength_sliderHandle
+    //};
+    //sliderInfo.push(contextLength_para);
+    let time_para = {
+        "defaultValue":currentTime.getCurrent,
+        "max":timeEnd,
+        "min":timeStart,
+        "id":"currentTime",
+        "oninputHandle":time_sliderHandle
+    };
+    sliderInfo.push(time_para);
+    initSliders(sliderInfo);
+    
+
     highlightManager.registerGetPosHandle(getVerticePositionsByGrid);
     highlightManager.loadTo(container);
 

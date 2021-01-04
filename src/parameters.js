@@ -23,6 +23,7 @@ export const nodeRadius_highlight_pix=3;
 export const tickmarksLength_pix = 2;
 export const gridLineWidth_pix = 1;
 export const highlightWidth_pix = 4;
+export const slider_length = 200;
 export const EP = 100;
 // tracker
 export const interval = 1;

@@ -131,9 +131,11 @@ export function updateSingleLinechart(h,w,idx,grid_pix,pos_pix) {
                     //    .style("stroke",formatColor(PARA.highlightColor));
                     currentTime.setCurrent = d.time;
                     let slider = document.getElementById("currentTime");
-                    slider.value = currentTime.value;
+                    //slider.value = currentTime.value;
+                    slider.noUiSlider.set([currentTime.value]);
                     let text = document.getElementById("currentTime-text");
-                    text.innerHTML = slider.value;
+                    //text.innerHTML = slider.value;
+                    text.innerHTML = currentTime.value;
                     mouseTracker_mouseclickHandle(); 
                 });
 }

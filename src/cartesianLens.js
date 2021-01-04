@@ -166,25 +166,6 @@ function bodyListener(evt) {
     updateLinecharts(h,w);
 }
 export function loadCartesianLens() {
-    let sliderInfo = [];
-    let d_para = {
-        "defaultValue":d,
-        "max":20,
-        "min":1,
-        "id":"d",
-        "oninputHandle":d_sliderHandle
-    };
-    sliderInfo.push(d_para);
-    let time_para = {
-        "defaultValue":currentTime.value,
-        "max":timeEnd,
-        "min":timeStart,
-        "id":"currentTime",
-        "oninputHandle":time_sliderHandle
-    };
-    sliderInfo.push(time_para);
-    initSliders(sliderInfo);
-   
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
     quad = initGridMesh(PARA.table.h,PARA.table.w,backgroundTexture); 
     
@@ -209,6 +190,25 @@ export function loadCartesianLens() {
     
     document.addEventListener('mousemove',bodyListener);
     
+    let sliderInfo = [];
+    //let d_para = {
+    //    "defaultValue":d,
+    //    "max":20,
+    //    "min":1,
+    //    "id":"d",
+    //    "oninputHandle":d_sliderHandle
+    //};
+    //sliderInfo.push(d_para);
+    let time_para = {
+        "defaultValue":currentTime.value,
+        "max":timeEnd,
+        "min":timeStart,
+        "id":"currentTime",
+        "oninputHandle":time_sliderHandle
+    };
+    sliderInfo.push(time_para);
+    initSliders(sliderInfo);
+
     highlightManager.registerGetPosHandle(getVerticePositionsByGrid);
     highlightManager.loadTo(container);
 
