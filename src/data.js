@@ -1,32 +1,83 @@
 import {loadParameters} from "./parameters.js";
-//import {loadFunc} from "./setup.js";
 
+//only valid for US
 const label = {
-    "PILOT":[],
     "US":[],
-    "RANDOM":[]
 };
 const tableSize = {
     "PILOT":{},
     "US":{},
-    "RANDOM":{}
+    "RANDOM":{},
+    "STUDY1":{}
 };
 const DATA = {
     "PILOT":{},
     "RANDOM":{},
-    "US":{}
+    "US":{},
+    "STUDY1":{
+        "task-1-100x100-downward-0":{},
+        "task-2-100x100-tent-0":{}
+    }
 };
 const timerange = {
     "PILOT":{"start":0,"end":4},
     "US":{"start":2005,"end":2009},
-    "RANDOM":{"start":0,"end":4}
+    "RANDOM":{"start":0,"end":4},
+    "STUDY1":{"start":0,"end":4}
 };
 const maxValue = {
     "PILOT":0,
     "US":0,
-    "RANDOM":0
-}
+    "RANDOM":0,
+    "STUDY1":{}
+};
+const datasetLoader = {
+    "STUDY1":{
+        "TASK1":function(dataFileName) {
+            const dataFileDir = "static/STUDY1/"+dataFileName+".json"
+            $.ajax({
+                dataType:"json",
+                url:dataFileDir,
+                async:false,
+                success:function(json) {
+                    tableSize["STUDY1"][dataFileName] = {'h':json.nrows,'w':json.ncols};
+                    DATA["STUDY1"][dataFileName]=json.values;
+                }
+            });
+        },
+        "TASK2":function(dataFileName) {
+            const dataFileDir = "static/STUDY1/"+dataFileName+".json"
+            $.ajax({
+                dataType:"json",
+                url:dataFileDir,
+                async:false,
+                success:function(json) {
+                    tableSize["STUDY1"][dataFileName] = {'h':json.nrows,'w':json.ncols};
+                    DATA["STUDY1"][dataFileName]=json.values;
+                }
+            });
+        }
+    }
+};
 const initDataFunc = {
+    "STUDY1":function() {
+        const STUDY1_dataFileDir = "static/STUDY1/";
+        for(let file in DATA["STUDY1"]) {
+            if(file.startsWith("task-1")) {
+                datasetLoader["STUDY1"]["TASK1"](file);
+            } else if(file.startsWith("task-2")) {
+                datasetLoader["STUDY1"]["TASK2"](file);
+            }
+        }
+        $.ajax({
+            dataType:"json",
+            url:"static/STUDY1/max_value.json",
+            async:false,
+            success:function(json) {
+                maxValue["STUDY1"] = json;
+            }
+        });
+    },
     "PILOT":function() {
         const PILOT_dataFileDir = "static/PILOT/data.json";
         $.ajax({
@@ -76,6 +127,9 @@ const initDataFunc = {
     }
 };
 const getValueFunc = {
+    "STUDY1":function(timeIdx,h,w) {
+        return DATA["STUDY1"][currentTrial][h*tableSize["STUDY1"][currentTrial].w+w][timeIdx]/maxValue["STUDY1"][currentTrial];
+    },
     "PILOT":function(timeIdx,h,w) {
         return DATA["PILOT"][h*tableSize["PILOT"].w+w][timeIdx]/maxValue["PILOT"];
     },
@@ -111,14 +165,20 @@ export function initData() {
 }
 export function loadData() {
     dataType = input.dataType.options[input.dataType.selectedIndex].value;
-    nodeCnt = Number(input.nodeCnt.value);
-    tableSize["RANDOM"].h=nodeCnt;
-    tableSize["RANDOM"].w=nodeCnt;
-    if(dataType=="RANDOM") generateRandomData();
+    currentTrial = input.dataType.options[input.dataType.selectedIndex].innerHTML;
+    if(dataType=="RANDOM") {
+        nodeCnt = Number(input.nodeCnt.value);
+        tableSize["RANDOM"] = {'h':nodeCnt,'w':nodeCnt};
+        generateRandomData();
+    }
     technique = input.technique.options[input.technique.selectedIndex].value;
     timeStart=timerange[dataType].start;
     timeEnd = timerange[dataType].end;
     currentTime.value = timeStart;
     getValue = getValueFunc[dataType];
-    loadParameters(tableSize[dataType].h,tableSize[dataType].w);
+    if(dataType==="STUDY1") {
+        loadParameters(tableSize[dataType][currentTrial].h,tableSize[dataType][currentTrial].w);
+    } else {
+        loadParameters(tableSize[dataType].h,tableSize[dataType].w);
+    }
 };
