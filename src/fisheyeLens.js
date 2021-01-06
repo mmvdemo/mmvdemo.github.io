@@ -216,7 +216,6 @@ function alignGrids(bound) {
     bound_pix.push(Math.max(pos_pix[1].w,pos_pix[3].w));
     bound_pix.push(Math.min(pos_pix[0].h,pos_pix[1].h));
     bound_pix.push(Math.max(pos_pix[2].h,pos_pix[3].h));
-    ////console.log(bound);
     const length = {'left_right':bound[1]-bound[0],'up_down':bound[3]-bound[2]};
     for(let i=bound[2];i<=bound[3];i++) {
         const h = bound_pix[2]+(i-bound[2])*(bound_pix[3]-bound_pix[2])/(length.up_down);
@@ -260,10 +259,8 @@ function updateQuad_inside(h,w) {
     const f = getFocusInQuad("INSIDE",h,w); 
     const buffer = quad.geometry.getBuffer('aVertexPosition');
     const dirMatrix = [];
-    //console.log(`----------------------`);
-    //console.log(f);
     for(let i=0;i<=distort.h;i++) {
-        let row = "";
+        let row = `${i} `;
         for(let j=0;j<=distort.w;j++) {
             const result = getPolarPosition(i,j,f); 
             const pos_pix = result.pos_pix;
@@ -274,85 +271,92 @@ function updateQuad_inside(h,w) {
         }
         //console.log(row);
     }
-    //console.log(`----------------------`);
     buffer.update();
     //alignFocusGrid(f);
-    const bound = getPlateBound(f,dirMatrix);
+    const bound = getPlateBound(f);
     alignGrids(bound);
     //correctFlip();
     highlightManager.updateAll();
     updateLensGridLine();
 };
-function getPlateBound(f,dirMatrix) {
-    f.h = Math.min(distort.h-1,Math.floor(f.h));
-    f.w = Math.min(distort.w-1,Math.floor(f.w));
-    const hori = [];
-    const vert = [];
-    for(let i=0;i<=distort.h;i++) {
-        let bounds = [];
-        for(let j=0;j<distort.w;j++) {
-            if(dirMatrix[i*(distort.w+1)+j]!==dirMatrix[i*(distort.w+1)+j+1]) {
-                bounds.push(j);
-            }
+function getPlateBound(f) {
+    const f_discrete = {'h':Math.min(distort.h-1,Math.floor(f.h)),'w':Math.min(distort.w-1,Math.floor(f.w))};
+    function getBound(side) {
+        if(f[side]<distort[side]/2) {
+            return [f_discrete[side],f_discrete[side]+2*contextRadius+1];
+        } else if(f[side]>distort[side]/2) {
+            return [f_discrete[side]-2*contextRadius,f_discrete[side]+1];
+        } else {
+            return [f_discrete[side]-contextRadius,f_discrete[side]+contextRadius+1];
         }
-        if(bounds.length==0) {
-            if(Math.abs(i-f.h)<=contextRadius) {
-                const fw = Math.min(distort.w-contextRadius, Math.max(contextRadius,f.w));
-                bounds.push(fw-contextRadius);
-                bounds.push(fw+contextRadius);
-                //bounds.push(f.w-contextRadius);bounds.push(f.w+contextRadius)
-            }
-            else {bounds.push(-1);bounds.push(distort.w+1);}
-        } else if(bounds.length==1) {
-            if(f.w>distort.w/2) {
-                bounds.push(distort.w);
-            } else {
-                bounds = [0].concat(bounds);
-            }
-        }
-        //console.log(bounds);
-        hori.push(bounds);
     }
-
-    for(let j=0;j<=distort.w;j++) {
-        const bounds = [];
-        for(let i=0;i<distort.h;i++) {
-            if(dirMatrix[i*(distort.h+1)+j]!==dirMatrix[(i+1)*(distort.h+1)+j]) {bounds.push(i);}
-        }
-        if(bounds.length==0) {
-            if(Math.abs(j-f.w)<=contextRadius) {bounds.push(f.h);bounds.push(f.h);}
-            else {bounds.push(-1);bounds.push(distort.h+1);}
-        }
-        vert.push(bounds);
-    }
-    function getBound(array,side_flag) {
-        const ans = [-1,-1];
-        let last_dis = side_flag==="left_right"?distort.w+3:distort.h+3;
-        const iter_side = side_flag==="left_right"?'h':'w';
-        for(let i=0;i<=distort[iter_side];i++) {
-            const dis = array[i][1]-array[i][0];
-            if(ans[0]<0 && dis<last_dis && dis<=2*contextRadius+1) {
-                ans[0]=i;
-            } else if(ans[1]<0 && dis>last_dis && dis>2*contextRadius+1) {
-                ans[1]=i-1;
-            }
-            last_dis = dis;
-        }
-        return ans;
-    }
-    const left_right_bound = getBound(hori,'left_right');
-    //console.log(`left_right_bound:`);
-    //console.log(left_right_bound);
-    const up_down_bound = [Math.min(hori[left_right_bound[0]][0],hori[left_right_bound[1]][0]),Math.max(hori[left_right_bound[0]][1],hori[left_right_bound[1]][1])];
-    //const up_down_bound = getBound(vert,'up_down');
-    const bound = up_down_bound.concat(left_right_bound);
-    
-    //console.log(`up_down_bound:`);
-    //console.log(up_down_bound);
-    //console.log(`bound:`);
-    //console.log(bound);
+    const left_right_bound = getBound("w");
+    const up_down_bound = getBound("h");
+    const bound = left_right_bound.concat(up_down_bound);
     return bound;
 }
+//function getPlateBound(f,dirMatrix) {
+//    f.h = Math.min(distort.h-1,Math.floor(f.h));
+//    f.w = Math.min(distort.w-1,Math.floor(f.w));
+//    const hori = [];
+//    const vert = [];
+//    for(let i=0;i<=distort.h;i++) {
+//        let bounds = [];
+//        for(let j=0;j<distort.w;j++) {
+//            if(dirMatrix[i*(distort.w+1)+j]!==dirMatrix[i*(distort.w+1)+j+1]) {
+//                bounds.push(j);
+//            }
+//        }
+//        if(bounds.length==0) {
+//            if(Math.abs(i-f.h)<=contextRadius) {
+//                const fw = Math.min(distort.w-contextRadius, Math.max(contextRadius,f.w));
+//                bounds.push(fw-contextRadius);
+//                bounds.push(fw+contextRadius);
+//                //bounds.push(f.w-contextRadius);bounds.push(f.w+contextRadius)
+//            }
+//            else {bounds.push(-1);bounds.push(distort.w+1);}
+//        } else if(bounds.length==1) {
+//            if(f.w>distort.w/2) {
+//                bounds.push(distort.w);
+//            } else {
+//                bounds = [0].concat(bounds);
+//            }
+//        }
+//        hori.push(bounds);
+//    }
+//
+//    for(let j=0;j<=distort.w;j++) {
+//        const bounds = [];
+//        for(let i=0;i<distort.h;i++) {
+//            if(dirMatrix[i*(distort.h+1)+j]!==dirMatrix[(i+1)*(distort.h+1)+j]) {bounds.push(i);}
+//        }
+//        if(bounds.length==0) {
+//            if(Math.abs(j-f.w)<=contextRadius) {bounds.push(f.h);bounds.push(f.h);}
+//            else {bounds.push(-1);bounds.push(distort.h+1);}
+//        }
+//        vert.push(bounds);
+//    }
+//    function getBound(array,side_flag) {
+//        const ans = [-1,-1];
+//        let last_dis = side_flag==="left_right"?distort.w+3:distort.h+3;
+//        const iter_side = side_flag==="left_right"?'h':'w';
+//        for(let i=0;i<=distort[iter_side];i++) {
+//            const dis = array[i][1]-array[i][0];
+//            if(ans[0]<0 && dis<last_dis && dis<=2*contextRadius+1) {
+//                ans[0]=i;
+//            } else if(ans[1]<0 && dis>last_dis && dis>2*contextRadius+1) {
+//                ans[1]=i-1;
+//            }
+//            last_dis = dis;
+//        }
+//        return ans;
+//    }
+//    const left_right_bound = getBound(hori,'left_right');
+//    const up_down_bound = [Math.min(hori[left_right_bound[0]][0],hori[left_right_bound[1]][0]),Math.max(hori[left_right_bound[0]][1],hori[left_right_bound[1]][1])];
+//    const bound = up_down_bound.concat(left_right_bound);
+//    
+//    return bound;
+//}
 function getVerticePositionsByGrid(pos1,pos2) {
     const quadSize = {'h':PARA.table.h+1,'w':PARA.table.w+1};
     const array = getMeshPos(backgroundQuad,quadSize,pos1,{'h':pos2.h+1,'w':pos2.w+1}); 
@@ -402,6 +406,7 @@ function initLinecharts() {
 }
 function updateLinecharts(h,w) {
     const focus = getFocusInQuad(style_flag,h,w);
+    const bound = getPlateBound(focus);
     focus.h = Math.min(distort.h-1,Math.floor(focus.h));
     focus.w = Math.min(distort.w-1,Math.floor(focus.w));
     const center = {
@@ -436,35 +441,53 @@ function updateLinecharts(h,w) {
         'w':lensOrigin.w*PARA.step_pix.w+rect.left+window.scrollX+container.x
     };
     const buffer = quad.geometry.getBuffer('aVertexPosition');
-    for(let i=0;i<=2*cr;i++) {
-        for(let j=0;j<=2*cr;j++) {
+    //for(let i=0;i<=2*cr;i++) {
+    //    for(let j=0;j<=2*cr;j++) {
+    for(let i=bound[2];i<bound[3];i++) {
+        for(let j=bound[0];j<bound[1];j++) {
             const local = {
-                'h':focus.h-cr+i,
-                'w':focus.w-cr+j
+                'h':i,
+                'w':j
             };
-            const width = {
-                'left':Math.max(buffer.data[2*bufferIndex(local.h,local.w)],buffer.data[2*bufferIndex(local.h+1,local.w)]),
-                'right':Math.min(buffer.data[2*bufferIndex(local.h,local.w+1)],buffer.data[2*bufferIndex(local.h+1,local.w+1)])
-            };
-            const height = {
-                'up':Math.max(buffer.data[2*bufferIndex(local.h,local.w)+1],buffer.data[2*bufferIndex(local.h,local.w+1)+1]),
-                'down':Math.min(buffer.data[2*bufferIndex(local.h+1,local.w)+1],buffer.data[2*bufferIndex(local.h+1,local.w+1)+1])
-            };
+            //const local = {
+            //    'h':focus.h-cr+i,
+            //    'w':focus.w-cr+j
+            //};
+            //const width = {
+            //    'left':Math.max(buffer.data[2*bufferIndex(local.h,local.w)],buffer.data[2*bufferIndex(local.h+1,local.w)]),
+            //    'right':Math.min(buffer.data[2*bufferIndex(local.h,local.w+1)],buffer.data[2*bufferIndex(local.h+1,local.w+1)])
+            //};
+            //const height = {
+            //    'up':Math.max(buffer.data[2*bufferIndex(local.h,local.w)+1],buffer.data[2*bufferIndex(local.h,local.w+1)+1]),
+            //    'down':Math.min(buffer.data[2*bufferIndex(local.h+1,local.w)+1],buffer.data[2*bufferIndex(local.h+1,local.w+1)+1])
+            //};
+            //const grid_pix = {
+            //    'h':height.down-height.up,
+            //    'w':width.right-width.left
+            //};
+            //const pos = {
+            //    'h':focusIdx.h-cr+i,
+            //    'w':focusIdx.w-cr+j
+            //};
+            //const pos_pix = {
+            //    'h':height.up,
+            //    'w':width.left
+            //};
             const grid_pix = {
-                'h':height.down-height.up,
-                'w':width.right-width.left
+                'h':buffer.data[2*bufferIndex(local.h+1,local.w)+1]-buffer.data[2*bufferIndex(local.h,local.w)+1],
+                'w':buffer.data[2*bufferIndex(local.h,local.w+1)]-buffer.data[2*bufferIndex(local.h,local.w)]
             };
             const pos = {
-                'h':focusIdx.h-cr+i,
-                'w':focusIdx.w-cr+j
+                'h':focusIdx.h-cr+i-bound[2],
+                'w':focusIdx.w-cr+j-bound[0]
             };
             const pos_pix = {
-                'h':height.up,
-                'w':width.left
+                'h':buffer.data[2*bufferIndex(local.h,local.w)+1],
+                'w':buffer.data[2*bufferIndex(local.h,local.w)]
             };
             pos_pix.h +=translate.h; 
             pos_pix.w +=translate.w;
-            updateSingleLinechart(i,j,pos,grid_pix,pos_pix);
+            updateSingleLinechart(i-bound[2],j-bound[0],pos,grid_pix,pos_pix);
         }
     }
 }
@@ -544,7 +567,6 @@ function bodyListener(evt) {
     }
     w = Math.max(0,Math.min(PARA.table.w-1,w)); 
     h = Math.max(0,Math.min(PARA.table.h-1,h));
-    ////console.log(`h = ${h}, w = ${w}`);
     if(style_flag==="INSIDE") {
         updateQuad_inside(h,w);
     } else if (style_flag==="OUTSIDE") {
