@@ -8,7 +8,7 @@ import {initSingleLinechart,updateSingleLinechart,destroyLinecharts,hideLinechar
 import {highlightManager} from "./highlight.js";
 import {mouseTracker} from "./tracking.js";
 // for table lens
-let focalScale = 7;
+let focalScale = 4;
 let contextRadius=1;
 let quad;
 let gridLineObj;
@@ -40,7 +40,21 @@ let doi = tableDOI;
 
 
 let maskSprites = {};
+let maskGridlines = {};
 let maskSpriteContainer;
+function initMaskGridlines() {
+    maskGridlines['hori_left']=[];
+    maskGridlines['hori_right']=[];
+    maskGridlines['vert_up']=[];
+    maskGridlines['vert_down']=[];
+    for(let key of Object.keys(maskGridlines)) {
+        for(let i=0;i<contextRadius*2+1;i++) {
+            const obj = new GridLineObject(1,1);
+            obj.addTo(maskSpriteContainer);
+            maskGridlines[key].push(obj);
+        }
+    }
+}
 function initMaskSprite() {
     maskSprites = {};
     for(let i=0;i<maskSpriteContainer.children.length;i++) {
@@ -73,12 +87,24 @@ function initMaskSprite() {
         maskSpriteContainer.addChild(sprite);
         maskSprites.vert_down.push(sprite);
     }
+    initMaskGridlines();
+}
+function setMaskGridlinesVisibility(visible) {
+    for(let key of Object.keys(maskGridlines)) {
+        for(let obj of maskGridlines[key]) {
+            obj.setVisibility(visible);
+        }
+    }
 }
 function setMasksVisibility(visible) {
-    for(let mask of maskSprites['hori_left']) {mask.visible = visible;}
-    for(let mask of maskSprites['hori_right']) {mask.visible = visible;}
-    for(let mask of maskSprites['vert_up']) {mask.visible = visible;}
-    for(let mask of maskSprites['vert_down']) {mask.visible = visible;}
+    for(let key of Object.keys(maskSprites)) {
+        for(let mask of maskSprites[key]) {mask.visible = visible;}
+    }
+    setMaskGridlinesVisibility(visible);
+}
+function setMasksVisibilityByKey(visible,key) {
+    for(let mask of maskSprites[key]) {mask.visible = visible;}
+    for(let obj of maskGridlines[key]) {obj.setVisibility(visible);}
 }
 function binSearch(n,s,lo,hi) {
     const sum = transfer(doi,focusPos[s],PARA.table[s]);
@@ -150,70 +176,118 @@ function updateMaskSprite() {
         'w':focalScale/sum.h*PARA.stage_pix.h,
         'h':focalScale/sum.w*PARA.stage_pix.w
     };
-
+     
     len.vert_up = {
-        'h': buffer.data[2*bufferIndex(focusPos.h-contextRadius,focusPos.w)+1],
-        'w': (focalLen.w-regLen.w)/2
+        'h': -PARA.gridLineWidth_pix+buffer.data[2*bufferIndex(focusPos.h-contextRadius,focusPos.w)+1],
+        'w': -PARA.gridLineWidth_pix+(focalLen.w-regLen.w)/2
     };
     len.vert_down = {
-        'h': PARA.stage_pix.h-buffer.data[2*bufferIndex(focusPos.h+contextRadius+1,focusPos.w)+1],
-        'w': (focalLen.w-regLen.w)/2
+        'h': -PARA.gridLineWidth_pix+PARA.stage_pix.h-buffer.data[2*bufferIndex(focusPos.h+contextRadius+1,focusPos.w)+1],
+        'w': -PARA.gridLineWidth_pix+(focalLen.w-regLen.w)/2
     };
     len.hori_left = {
-        'h':(focalLen.h-regLen.h)/2,
-        'w':buffer.data[2*bufferIndex(focusPos.h,focusPos.w-contextRadius)]
+        'h':-PARA.gridLineWidth_pix+(focalLen.h-regLen.h)/2,
+        'w':-PARA.gridLineWidth_pix+buffer.data[2*bufferIndex(focusPos.h,focusPos.w-contextRadius)]
     };
     len.hori_right = {
-        'h':(focalLen.h-regLen.h)/2,
-        'w':PARA.stage_pix.w-buffer.data[2*bufferIndex(focusPos.h,focusPos.w+contextRadius+1)]
+        'h':-PARA.gridLineWidth_pix+(focalLen.h-regLen.h)/2,
+        'w':-PARA.gridLineWidth_pix+PARA.stage_pix.w-buffer.data[2*bufferIndex(focusPos.h,focusPos.w+contextRadius+1)]
     };
-    for(let i=0;i<maskSprites.vert_up.length;i+=2) {
-        let sprite = maskSprites.vert_up[i];
-        let position = {
-            'h':buffer.data[2*bufferIndex(0,i/2+focusPos.w-contextRadius)+1],
-            'w':buffer.data[2*bufferIndex(0,i/2+focusPos.w-contextRadius)]
-        };
-        sprite.position.set(position.w,position.h);
-        sprite.scale.set(len.vert_up.w,len.vert_up.h);
-        sprite = maskSprites.vert_up[i+1];
-        sprite.position.set(position.w+len.vert_up.w+regLen.w,position.h);
-        sprite.scale.set(len.vert_up.w,len.vert_up.h);
+    if(len.vert_up.h<=0) {
+        setMasksVisibilityByKey(false,"vert_up");
+    } else {
+        setMasksVisibilityByKey(true,"vert_up");
+        for(let i=0;i<maskSprites.vert_up.length;i+=2) {
+            let sprite = maskSprites.vert_up[i];
+            let position = {
+                'h':PARA.gridLineWidth_pix/2+buffer.data[2*bufferIndex(0,i/2+focusPos.w-contextRadius)+1],
+                'w':PARA.gridLineWidth_pix/2+buffer.data[2*bufferIndex(0,i/2+focusPos.w-contextRadius)]
+            };
+            sprite.position.set(position.w,position.h);
+            sprite.scale.set(len.vert_up.w,len.vert_up.h);
+            sprite = maskSprites.vert_up[i+1];
+            sprite.position.set(PARA.gridLineWidth_pix+position.w+len.vert_up.w+regLen.w,position.h);
+            sprite.scale.set(len.vert_up.w,len.vert_up.h);
+
+            const hori = [0,len.vert_up.h+PARA.gridLineWidth_pix];
+            const vert = [position.w+len.vert_up.w,position.w+len.vert_up.w+PARA.gridLineWidth_pix/2+regLen.w];
+            const array=[];
+            array.push([{'h':hori[0],'w':vert[0]},{'h':hori[0],'w':vert[1]}]);
+            array.push([{'h':hori[1],'w':vert[0]},{'h':hori[1],'w':vert[1]}]);
+            maskGridlines.vert_up[i/2].updatePosByVertice(array);
+        }
     }
-    for(let i=0;i<maskSprites.vert_down.length;i+=2) {
-        let sprite = maskSprites.vert_down[i];
-        let position = {
-            'h':buffer.data[2*bufferIndex(focusPos.h+contextRadius+1,i/2+focusPos.w-contextRadius)+1],
-            'w':buffer.data[2*bufferIndex(focusPos.h+contextRadius+1,i/2+focusPos.w-contextRadius)]
-        };
-        sprite.position.set(position.w,position.h);
-        sprite.scale.set(len.vert_down.w,len.vert_down.h);
-        sprite = maskSprites.vert_down[i+1];
-        sprite.position.set(position.w+len.vert_down.w+regLen.w,position.h);
-        sprite.scale.set(len.vert_down.w,len.vert_down.h);
+    if(len.vert_down.h<=0) {
+        setMasksVisibilityByKey(false,"vert_down");
+    } else {
+        setMasksVisibilityByKey(true,"vert_down");
+        for(let i=0;i<maskSprites.vert_down.length;i+=2) {
+            let sprite = maskSprites.vert_down[i];
+            let position = {
+                'h':PARA.gridLineWidth_pix/2+buffer.data[2*bufferIndex(focusPos.h+contextRadius+1,i/2+focusPos.w-contextRadius)+1],
+                'w':PARA.gridLineWidth_pix/2+buffer.data[2*bufferIndex(focusPos.h+contextRadius+1,i/2+focusPos.w-contextRadius)]
+            };
+            sprite.position.set(position.w,position.h);
+            sprite.scale.set(len.vert_down.w,len.vert_down.h);
+            sprite = maskSprites.vert_down[i+1];
+            sprite.position.set(PARA.gridLineWidth_pix+position.w+len.vert_down.w+regLen.w,position.h);
+            sprite.scale.set(len.vert_down.w,len.vert_down.h);
+            
+            const hori = [position.h-PARA.gridLineWidth_pix/2,PARA.stage_pix.h];
+            const vert = [position.w+len.vert_down.w,position.w+len.vert_down.w+PARA.gridLineWidth_pix/2+regLen.w];
+            const array=[];
+            array.push([{'h':hori[0],'w':vert[0]},{'h':hori[0],'w':vert[1]}]);
+            array.push([{'h':hori[1],'w':vert[0]},{'h':hori[1],'w':vert[1]}]);
+            maskGridlines.vert_down[i/2].updatePosByVertice(array);
+        }
     }
-    for(let i=0;i<maskSprites.hori_left.length;i+=2) {
-        let sprite = maskSprites.hori_left[i];
-        let position = {
-            'h':buffer.data[2*bufferIndex(i/2+focusPos.h-contextRadius,0)+1],
-            'w':buffer.data[2*bufferIndex(i/2+focusPos.h-contextRadius,0)]
-        };
-        sprite.position.set(position.w,position.h);
-        sprite.scale.set(len.hori_left.w,len.hori_left.h);
-        sprite = maskSprites.hori_left[i+1];
-        sprite.position.set(position.w,position.h+len.hori_left.h+regLen.h);
-        sprite.scale.set(len.hori_left.w,len.hori_left.h);
+    if(len.hori_left.w<=0) {
+        setMasksVisibilityByKey(false,"hori_left");
+    } else {
+        setMasksVisibilityByKey(true,"hori_left");
+        for(let i=0;i<maskSprites.hori_left.length;i+=2) {
+            let sprite = maskSprites.hori_left[i];
+            let position = {
+                'h':PARA.gridLineWidth_pix/2+buffer.data[2*bufferIndex(i/2+focusPos.h-contextRadius,0)+1],
+                'w':PARA.gridLineWidth_pix/2+buffer.data[2*bufferIndex(i/2+focusPos.h-contextRadius,0)]
+            };
+            sprite.position.set(position.w,position.h);
+            sprite.scale.set(len.hori_left.w,len.hori_left.h);
+            sprite = maskSprites.hori_left[i+1];
+            sprite.position.set(position.w,PARA.gridLineWidth_pix+position.h+len.hori_left.h+regLen.h);
+            sprite.scale.set(len.hori_left.w,len.hori_left.h);
+
+            const hori = [position.h+len.hori_left.h-PARA.gridLineWidth_pix/2,position.h+len.hori_left.h+PARA.gridLineWidth_pix/2+regLen.h];
+            const vert = [0,len.hori_left.w+PARA.gridLineWidth_pix];
+            const array=[];
+            array.push([{'h':hori[0],'w':vert[0]},{'h':hori[0],'w':vert[1]}]);
+            array.push([{'h':hori[1],'w':vert[0]},{'h':hori[1],'w':vert[1]}]);
+            maskGridlines.hori_left[i/2].updatePosByVertice(array);
+        }
     }
-    for(let i=0;i<maskSprites.hori_right.length;i+=2) {
-        let sprite = maskSprites.hori_right[i];
-        let position = {
-            'h':buffer.data[2*bufferIndex(i/2+focusPos.h-contextRadius,focusPos.w+contextRadius+1)+1],
-            'w':buffer.data[2*bufferIndex(i/2+focusPos.h-contextRadius,focusPos.w+contextRadius+1)]
-        };
-        sprite.position.set(position.w,position.h);
-        sprite.scale.set(len.hori_right.w,len.hori_right.h);
-        sprite = maskSprites.hori_right[i+1];
-        sprite.position.set(position.w,position.h+len.hori_right.h+regLen.h);
-        sprite.scale.set(len.hori_right.w,len.hori_right.h);
+    if(len.hori_right.w<=0) {
+        setMasksVisibilityByKey(false,"hori_right");
+    } else {
+        setMasksVisibilityByKey(true,"hori_right");
+        for(let i=0;i<maskSprites.hori_right.length;i+=2) {
+            let sprite = maskSprites.hori_right[i];
+            let position = {
+                'h':PARA.gridLineWidth_pix/2+buffer.data[2*bufferIndex(i/2+focusPos.h-contextRadius,focusPos.w+contextRadius+1)+1],
+                'w':PARA.gridLineWidth_pix/2+buffer.data[2*bufferIndex(i/2+focusPos.h-contextRadius,focusPos.w+contextRadius+1)]
+            };
+            sprite.position.set(position.w,position.h);
+            sprite.scale.set(len.hori_right.w,len.hori_right.h);
+            sprite = maskSprites.hori_right[i+1];
+            sprite.position.set(position.w,PARA.gridLineWidth_pix+position.h+len.hori_right.h+regLen.h);
+            sprite.scale.set(len.hori_right.w,len.hori_right.h);
+
+            const hori = [position.h+len.hori_right.h,position.h+len.hori_right.h+PARA.gridLineWidth_pix/2+regLen.h];
+            const vert = [position.w-PARA.gridLineWidth_pix/2,PARA.stage_pix.w];
+            const array=[];
+            array.push([{'h':hori[0],'w':vert[0]},{'h':hori[0],'w':vert[1]}]);
+            array.push([{'h':hori[1],'w':vert[0]},{'h':hori[1],'w':vert[1]}]);
+            maskGridlines.hori_right[i/2].updatePosByVertice(array);
+        }
     }
 }
 function initLinecharts() {
