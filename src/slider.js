@@ -26,6 +26,7 @@ export function initSliders(info) {
         noUiSlider.create(slider,{
             start: [Number(info[i].defaultValue)],
             step:1,
+            connect: 'lower',
             range: {
                 'min': [Number(info[i].min)],
                 'max': [Number(info[i].max)]
