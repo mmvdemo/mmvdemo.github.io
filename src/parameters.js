@@ -14,7 +14,8 @@ export const table = {'h':nodeCnt,'w':nodeCnt};
 export const step_pix = {'h':stage_pix.h/table.h,'w':stage_pix.w/table.w};
 export const linechart_lineWidth_pix = 2;
 export const linechart_axisTickFontSize = {'x':6,'y':6};
-export const linechart_thresh_pix=30;
+export const linechart_thresh_pix=0;
+
 export const linechartsTextureScale = 1;
 export const chartMargin_normal_pix=15;
 export const chartSize_normal_pix = {'h':100,'w':100};
@@ -25,6 +26,7 @@ export const gridLineWidth_pix = 1;
 export const highlightWidth_pix = 4;
 export const slider_length = 200;
 export const EP = 100;
+export const focal_cell_pix = 64;
 // tracker
 export const interval = 1;
 export const timeout = 3;

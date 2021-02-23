@@ -14,13 +14,17 @@ function getStrokeColor(h,w) {
     if(getValue(currentTime.value,h,w)>0.5) stroke = PARA.lineColorLight;
     return formatColor(stroke);
 }
-export function initSingleLinechart(h,w) {
+export function initSingleLinechart(h,w,parent_node) {
     let key = getKey(h,w);
     let div = document.createElement("div");   
     div.setAttribute("id",key);
     div.setAttribute("class","linechart");
     div.display = "none";
-    document.body.appendChild(div);
+    if (typeof parent_node === "undefined") {
+        document.body.appendChild(div);
+    } else {
+        parent_node.appendChild(div);
+    }
     
     const svg = d3.select("#"+key).append("svg")
         .append("g");
@@ -42,6 +46,7 @@ export function initSingleLinechart(h,w) {
 }
 
 export function updateSingleLinechart(h,w,idx,grid_pix,pos_pix) {
+    //console.log(`updateSingleLinechart`,h,w,idx,grid_pix,pos_pix);
     let minGridSide = grid_pix.h<=grid_pix.w?"h":"w";
     let ratio = grid_pix[minGridSide]/(PARA.chartSize_normal_pix[minGridSide]+2*PARA.chartMargin_normal_pix);
     let key = getKey(h,w);
@@ -107,14 +112,14 @@ export function updateSingleLinechart(h,w,idx,grid_pix,pos_pix) {
               .datum(dataset)
               .attr("d",line)
               .attr("fill","none")
-              .style("stroke-width",PARA.linechart_lineWidth_pix);
+              .style("stroke-width",PARA.linechart_lineWidth_pix*grid_pix.h/PARA.focal_cell_pix);
     chartGroup.selectAll(".dot")
                 .data(dataset)
                 .attr("fill",formatColor(stroke))
                 .attr("class", "dot") 
                 .attr("cx", function(d) { return xScale(d.time) })
                 .attr("cy", function(d) { return yScale(d.value) })
-                .attr("r",PARA.nodeRadius_normal_pix)
+                .attr("r",PARA.nodeRadius_normal_pix*grid_pix.h/PARA.focal_cell_pix)
                 .style("fill",function(d) {
                     const color = d.time==currentTime.value?PARA.highlightColor:stroke;
                     return formatColor(color); 
@@ -123,7 +128,7 @@ export function updateSingleLinechart(h,w,idx,grid_pix,pos_pix) {
                     const color = d.time==currentTime.value?PARA.highlightColor:stroke;
                     return formatColor(color); 
                 })
-                .style("stroke-width","3")
+                .style("stroke-width","3"*grid_pix.h/PARA.focal_cell_pix)
                 .style("stroke-opacity","0.5")
                 .on("click",function(d) {
                     //d3.select(this)
@@ -145,7 +150,8 @@ export function destroyLinecharts() {
     let linechartDiv = document.getElementsByClassName("linechart"); 
     while(document.getElementsByClassName("linechart").length>0) {
         linechartDiv = document.getElementsByClassName("linechart");
-        document.body.removeChild(linechartDiv[0]);
+        //document.body.removeChild(linechartDiv[0]);
+        linechartDiv[0].parentNode.removeChild(linechartDiv[0]);
     }
 }
 export function hideLinecharts() {
