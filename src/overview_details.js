@@ -258,7 +258,7 @@ export function loadOD() {
     initLinecharts();
 }
 export function destroyOD() {
-    document.body.style.overflowX = "auto";
+    // document.body.style.overflowX = "auto";
     clearSliders();
     destroyLinecharts();
     document.removeEventListener("mousedown",mousedownHandle);
