@@ -39,8 +39,8 @@ class MouseTracker {
     start() {
         this.timestamp_start = (new Date()).getTime();
         this.timestamp_last = this.timestamp_start; 
-        this.appendInterval = setInterval(this.appendData.bind(this,false), PARA.interval*1000);
-        this.sendInterval = setInterval(this.sendData.bind(this), PARA.timeout*1000);
+        this.appendInterval = setInterval(this.appendData.bind(this,false,"NONE"), PARA.interval*1000);
+        // this.sendInterval = setInterval(this.sendData.bind(this), PARA.timeout*1000);
 
         this.init();
         this.recording = true;
@@ -48,7 +48,7 @@ class MouseTracker {
     pause() {
         this.recording = false;
         clearInterval(this.appendInterval);
-        clearInterval(this.sendInterval);
+        //clearInterval(this.sendInterval);
     }
     
     getTimeSinceStart() {
@@ -73,9 +73,15 @@ class MouseTracker {
         this.mouse_window_client_pix = {'h':evt.clientY,'w':evt.clientX};
     }
     mouseclickHandle() {
-        this.appendData(true);
+        this.appendData(true,"DOT");
     }
-    appendData(clicked) {
+    selectSubmitHandle() {
+        this.appendData(true,"SINGLE_GRID_SELECT");
+    }
+    selectCancelHandle() {
+        this.appendData(true,"SINGLE_GRID_CANCEL");
+    }
+    appendData(clicked,click_type) {
         if(!this.recording) return;
         const data = {};
         data.timestamp = this.getTimeSinceStart();
@@ -86,18 +92,36 @@ class MouseTracker {
         data.displaying_chart_list = this.getDisplayingChartList();
         
         data.clicked = clicked;
+        data.click_type = data.clicked?click_type:"NONE";
+
         data.currentTime = currentTime.value;
-        this.dataStream.push(data);
-        if(clicked) {
-            this.sendData();
+
+
+        //Check if this is different than this.dataStream[this.dataStream.length-1]
+        function dataEquals(data1, data2) {
+            if (!data1.clicked && !data2.clicked && data1.focus.h == data2.focus.h && data1.focus.w == data2.focus.w) {
+                return true;
+            } else {
+                return false;
+            }
         }
+        if (this.dataStream.length>0) {
+            if (dataEquals(this.dataStream[this.dataStream.length-1],data)) {
+                this.dataStream.push(data);
+            }
+        }
+        this.dataStream.push(data);
+
+        //if(clicked) {
+        //    this.sendData();
+        //}
     }
 
     sendData() {
         if(!this.recording) return;
         this.sendToConsole();
         this.timestamp_last = (new Date()).getTime();
-        this.init();
+        //this.init();
     }
     sendToConsole() {
         for(let i=0;i<this.dataStream.length;i++) {
@@ -112,7 +136,7 @@ class MouseTracker {
             s += this.prettyPrint(data[it]);
             message+= s+'\n';
         }
-        console.log(message);
+        // console.log(message);
     }
     prettyPrint(data) {
         let s = "";
@@ -140,3 +164,5 @@ class MouseTracker {
 export let mouseTracker = new MouseTracker();
 export let mouseTracker_mousemoveHandle = mouseTracker.mousemoveHandle.bind(mouseTracker);
 export let mouseTracker_mouseclickHandle = mouseTracker.mouseclickHandle.bind(mouseTracker);
+export let mouseTracker_selectSubmitHandle = mouseTracker.selectSubmitHandle.bind(mouseTracker);
+export let mouseTracker_selectCancelHandle = mouseTracker.selectCancelHandle.bind(mouseTracker);

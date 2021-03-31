@@ -9,23 +9,41 @@ function initGridLine() {
 initGridLine();
 
 export class GridLineObject {
-    constructor(hh,ww) {
+    constructor(hh,ww,step_pix) {
+        if (typeof step_pix === "undefined") step_pix = PARA.step_pix;
         this.h = hh+1;
         this.w = ww+1;
         this.horiLines=[];
         this.vertLines = [];
 
         for(let i=0;i<this.h;i++) {
-            const line = initGridMesh(1,ww,gridLineTexture,{'h':PARA.gridLineWidth_pix,'w':PARA.step_pix.w});
+            const line = initGridMesh(1,ww,gridLineTexture,{'h':PARA.gridLineWidth_pix,'w':step_pix.w});
+            line.pivot.set(0,PARA.gridLineWidth_pix/2);
             this.horiLines.push(line);
         }
         for(let i=0;i<this.w;i++) {
-            const line = initGridMesh(hh,1,gridLineTexture,{'h':PARA.step_pix.h,'w':PARA.gridLineWidth_pix});
+            const line = initGridMesh(hh,1,gridLineTexture,{'h':step_pix.h,'w':PARA.gridLineWidth_pix});
+            line.pivot.set(PARA.gridLineWidth_pix/2,0);
             this.vertLines.push(line);
         }
-
     }
-
+    setColor(color) {
+        const texture = createSingleColorTexture(color);
+        for (let i=0;i<this.h;i++) {
+            this.horiLines[i].shader.uniforms.uSampler2 = texture;
+        }
+        for (let i=0;i<this.w;i++) {
+            this.vertLines[i].shader.uniforms.uSampler2 = texture;
+        }
+    }
+    setScale(scale) {
+        for (let i=0;i<this.h;i++) {
+            this.horiLines[i].scale.set(1,scale);
+        }
+        for (let j=0;j<this.w;j++) {
+            this.vertLines[j].scale.set(scale,1);
+        }
+    }
     addTo(container) {
         for(let i=0;i<this.h;i++) {container.addChild(this.horiLines[i]);}
         for(let j=0;j<this.w;j++) {container.addChild(this.vertLines[j]);}
@@ -50,10 +68,7 @@ export class GridLineObject {
                 buffer.data[2*(j+this.w)+1] = array[i][j].h+PARA.gridLineWidth_pix/2;
                 buffer.data[2*(j+this.w)]=array[i][j].w;
             }
-            //buffer.data[1+0] = array[i][0].w-PARA.gridLineWidth_pix/2;
-            //buffer.data[1+2*this.w] = array[i][0].w-PARA.gridLineWidth_pix/2;
-            //buffer.data[1+2*(this.w-1)]=array[i][this.w-1].w+PARA.gridLineWidth_pix/2;
-            //buffer.data[1+2*(2*this.w-1)]=array[i][this.w-1].w+PARA.gridLineWidth_pix/2;
+            
             buffer.update();
         }
         for(let j=0;j<this.w;j++) {
@@ -65,19 +80,16 @@ export class GridLineObject {
                 buffer.data[2*(2*i+1)+1] = array[i][j].h;
                 buffer.data[2*(2*i+1)] = array[i][j].w+PARA.gridLineWidth_pix/2;
             }
-            //buffer.data[0]=array[0][j].w-PARA.gridLineWidth_pix/2;
-            //buffer.data[2]=array[0][j].w-PARA.gridLineWidth_pix/2;
-            //buffer.data[2*(2*(this.h-1))]=array[this.h-1][j].w+PARA.gridLineWidth_pix/2;
-            //buffer.data[2*(2*(this.h-1)+1)]=array[this.h-1][j].w+PARA.gridLineWidth_pix/2;
+            
             buffer.update();
         }
     }
     updatePosByLine(hori,vert) {
         for(let i=0;i<this.h;i++) {
-            this.horiLines[i].position.set(0,hori[i]-PARA.gridLineWidth_pix/2); 
+            this.horiLines[i].position.set(0,hori[i]); 
         }
         for(let j=0;j<this.w;j++) {
-            this.vertLines[j].position.set(vert[j]-PARA.gridLineWidth_pix/2,0);
+            this.vertLines[j].position.set(vert[j],0);
         }
     }
 }

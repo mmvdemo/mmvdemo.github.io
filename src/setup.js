@@ -1,13 +1,11 @@
-import {initData,loadData} from "./data.js"; 
-import {highlightManager} from "./highlight.js";
-import {mouseTracker_mousemoveHandle,mouseTracker} from "./tracking.js";
+import {trial,initData,loadData} from "./data.js"; 
 import {destroyCartesianLens,loadCartesianLens} from "./cartesianLens.js";
 import {destroyTableLens_stretch,loadTableLens_stretch} from "./tableLens.js";
 import {destroyTableLens_step,loadTableLens_step} from "./tableLens.js";
 import {destroyFisheyeLens_inside,loadFisheyeLens_inside} from "./fisheyeLens.js";
 import {destroyFisheyeLens_outside,loadFisheyeLens_outside} from "./fisheyeLens.js";
 import {destroyZoom,loadZoom} from "./zoom.js";
-//loadData();
+import {loadOD,destroyOD} from "./overview_details.js";
 initData();
 let destroyFunc = {
     "cartesianlens":destroyCartesianLens,
@@ -15,7 +13,8 @@ let destroyFunc = {
     "tablelens_step":destroyTableLens_step,
     "fisheyelens_inside":destroyFisheyeLens_inside,
     "fisheyelens_outside":destroyFisheyeLens_outside,
-    "zoom":destroyZoom
+    "zoom":destroyZoom,
+    "overview_details":destroyOD
 };
 let loadFunc = {
     "cartesianlens":loadCartesianLens,
@@ -23,7 +22,8 @@ let loadFunc = {
     "tablelens_step":loadTableLens_step,
     "fisheyelens_inside":loadFisheyeLens_inside,
     "fisheyelens_outside":loadFisheyeLens_outside,
-    "zoom":loadZoom
+    "zoom":loadZoom,
+    "overview_details":loadOD
 };
 loadFunc[technique]();
 input.technique.onchange = function() {
@@ -32,28 +32,13 @@ input.technique.onchange = function() {
     technique = newTechnique;
     loadFunc[newTechnique]();
 }
-input.nodeCntButton.onclick = function() {
+input["matrix_size"].onchange = function() {
+    let size = input["matrix_size"].options[input["matrix_size"].selectedIndex].value;
     destroyFunc[technique]();
+    nodeCnt = size;
+    currentTrial = trial[nodeCnt];
     loadData();
     loadFunc[technique]();
 }
-input.addHighlightButton.onclick = function() {
-    highlightManager.addHighlightByString(input.addHighlight.value);
-    input.addHighlight.value="";
-}
-input.removeHighlightButton.onclick = function() {
-    highlightManager.removeHighlightByString(input.removeHighlight.value);
-    input.removeHighlight.value="";
-}
-input.mouseTrackButton.onclick = function() {
-    if(mouseTracker.recording) {
-        mouseTracker.pause();
-        input.mouseTrackButton.innerHTML = "start";
-    } else {
-        mouseTracker.start();
-        input.mouseTrackButton.innerHTML = "pause";
-    }
-}
-document.body.addEventListener('mousemove',mouseTracker_mousemoveHandle);
 
 

@@ -7,10 +7,15 @@ import {GridLineObject} from "./gridLines.js";
 import {initSingleLinechart,updateSingleLinechart,destroyLinecharts,hideLinecharts} from "./linechart.js";
 import {highlightManager} from "./highlight.js";
 import {mouseTracker} from "./tracking.js";
+// parameters
 
+// The range of cells that are showing line charts. (There are (2*${contextRadius}+1)^2 line charts in total.)
 let contextRadius = 1; 
-let distort = {'h':9,'w':9};
-let d = 5;
+// How many cells around the focused cell are being distorted by fisheye lens.
+let distort = {'h':19,'w':19};
+// Degree of magnification.
+let d = 8;
+
 let distort_pix = {'h':distort.h*PARA.step_pix.h,'w':distort.w*PARA.step_pix.w};
 let app;
 let backgroundQuad,quad;
@@ -276,7 +281,7 @@ function updateQuad_inside(h,w) {
     const bound = getPlateBound(f);
     alignGrids(bound);
     //correctFlip();
-    highlightManager.updateAll();
+    //highlightManager.updateAll();
     updateLensGridLine();
 };
 function getPlateBound(f) {
@@ -364,11 +369,13 @@ function getVerticePositionsByGrid(pos1,pos2) {
     const lensArray = getMeshPos(quad,lensMeshSize,{'h':0,'w':0},lensMeshSize);
     const lensOrigin = getLensOrigin(style_flag,focusPos.h,focusPos.w);
     function inLens(h,w) {return h>=lensOrigin.h&&h<=lensOrigin.h+distort.h&&w>=lensOrigin.w&&w<=lensOrigin.w+distort.w;}
-    for(let i=pos1.h;i<=pos2.h+1;i++) {
-        for(let j=pos1.w;j<=pos2.w+1;j++) {
-            if(inLens(i,j)) {
-                array[i-pos1.h][j-pos1.w].h = lensContainer.position.y+lensArray[i-lensOrigin.h][j-lensOrigin.w].h;
-                array[i-pos1.h][j-pos1.w].w = lensContainer.position.x+lensArray[i-lensOrigin.h][j-lensOrigin.w].w;
+    if (quad.visible) {
+        for(let i=pos1.h;i<=pos2.h+1;i++) {
+            for(let j=pos1.w;j<=pos2.w+1;j++) {
+                if(inLens(i,j)) {
+                    array[i-pos1.h][j-pos1.w].h = lensContainer.position.y+lensArray[i-lensOrigin.h][j-lensOrigin.w].h;
+                    array[i-pos1.h][j-pos1.w].w = lensContainer.position.x+lensArray[i-lensOrigin.h][j-lensOrigin.w].w;
+                }
             }
         }
     }
@@ -394,7 +401,7 @@ function updateQuad_outside(h,w) {
     const bgTexture = createBackgroundTexture(lensOrigin.h,lensOrigin.w,lensOrigin.h+distort.h-1,lensOrigin.w+distort.w-1);
     quad.shader.uniforms.uSampler2 = bgTexture;
     lensContainer.position.set(lensOrigin.w * PARA.step_pix.w,lensOrigin.h * PARA.step_pix.h);
-    highlightManager.updateAll();
+    //highlightManager.updateAll();
 }
 function initLinecharts() {
     //initSingleLinechart(0,0);
@@ -405,6 +412,8 @@ function initLinecharts() {
     }
 }
 function updateLinecharts(h,w) {
+    w = Math.max(0,Math.min(PARA.table.w-1,w)); 
+    h = Math.max(0,Math.min(PARA.table.h-1,h));
     const focus = getFocusInQuad(style_flag,h,w);
     const bound = getPlateBound(focus);
     focus.h = Math.min(distort.h-1,Math.floor(focus.h));
@@ -477,9 +486,13 @@ function updateLinecharts(h,w) {
                 'h':buffer.data[2*bufferIndex(local.h+1,local.w)+1]-buffer.data[2*bufferIndex(local.h,local.w)+1],
                 'w':buffer.data[2*bufferIndex(local.h,local.w+1)]-buffer.data[2*bufferIndex(local.h,local.w)]
             };
+            //const pos = {
+            //    'h':focusIdx.h-cr+i-bound[2],
+            //    'w':focusIdx.w-cr+j-bound[0]
+            //};
             const pos = {
-                'h':focusIdx.h-cr+i-bound[2],
-                'w':focusIdx.w-cr+j-bound[0]
+                'h':lensOrigin.h+i,
+                'w':lensOrigin.w+j
             };
             const pos_pix = {
                 'h':buffer.data[2*bufferIndex(local.h,local.w)+1],
@@ -531,10 +544,12 @@ function d_sliderHandle() {
 function changeCurrentTimeHandle() {
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
     backgroundQuad.shader.uniforms.uSampler2=backgroundTexture;
-    if(style_flag==="INSIDE") {
-        updateQuad_inside(focusPos.h,focusPos.w);
-    } else if(style_flag==="OUTSIDE") {
-        updateQuad_outside(focusPos.h,focusPos.w);
+    if (quad.visible) {
+        if(style_flag==="INSIDE") {
+            updateQuad_inside(focusPos.h,focusPos.w);
+        } else if(style_flag==="OUTSIDE") {
+            updateQuad_outside(focusPos.h,focusPos.w);
+        }
     }
     destroyLinecharts();
     initLinecharts();
@@ -578,6 +593,13 @@ function bodyListener(evt) {
 function init(s) {
     style_flag = s;
     
+    if (nodeCnt == "50") {
+        distort.h = 19; distort.w = 19;
+        d = 8;
+    } else {
+        distort.h = 29; distort.w = 29;
+        d = 24;
+    }
 
     distort_pix = {'h':distort.h*PARA.step_pix.h,'w':distort.w*PARA.step_pix.w};
     let EP = (s==="OUTSIDE") ? Math.max(distort_pix.h,distort_pix.w)/2:0;
@@ -585,11 +607,13 @@ function init(s) {
     const canvas = document.createElement("canvas");
     canvas.id = "canvas";
     canvas.style.position = "absolute";
-    document.body.appendChild(canvas);
+    //document.body.appendChild(canvas);
+    d3.select("#canvasVis").node().appendChild(canvas);
     app = new PIXI.Application({width:PARA.stage_pix.w+EP, height:PARA.stage_pix.h+EP, antialias:true, view:canvas});
     app.renderer.backgroundColor = PARA.backgroundColor;
     app.stage.interactive = true;
 
+    console.log(PARA.table);
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
     backgroundQuad = initGridMesh(PARA.table.h,PARA.table.w,backgroundTexture); 
     backgroundGridLineObj = new GridLineObject(PARA.table.h,PARA.table.w);
@@ -615,6 +639,9 @@ function init(s) {
     initLinecharts();
     currentTime.setHandle = changeCurrentTimeHandle;
 
+    quad.visible = false;
+    lensGridLineObj.setVisibility(false);
+    hideLinecharts();
     document.addEventListener('mousemove',bodyListener);
 
     let sliderInfo = [];
@@ -644,8 +671,8 @@ function init(s) {
     sliderInfo.push(time_para);
     initSliders(sliderInfo);
 
-    highlightManager.registerGetPosHandle(getVerticePositionsByGrid);
-    highlightManager.loadTo(container);
+    //highlightManager.registerGetPosHandle(getVerticePositionsByGrid);
+    //highlightManager.loadTo(container);
 
     //mouseTracker.start();
     //// for debug
@@ -660,18 +687,22 @@ export function loadFisheyeLens_outside() {
     init("OUTSIDE");
 }
 export function destroyFisheyeLens_inside() {
+    if (typeof app === 'undefined') return;   
     lensGridLineObj.destroy(lensGridLineContainer);
     document.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
     destroyLinecharts();
-    highlightManager.unregisterGetPosHandle();
+    currentTime.setHandle = function(val){};
+    //highlightManager.unregisterGetPosHandle();
 }
 export function destroyFisheyeLens_outside() {
+    if (typeof app === 'undefined') return;   
     lensGridLineObj.destroy(lensGridLineContainer);
     document.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
     destroyLinecharts();
-    highlightManager.unregisterGetPosHandle();
+    currentTime.setHandle = function(val){};
+    //highlightManager.unregisterGetPosHandle();
 }

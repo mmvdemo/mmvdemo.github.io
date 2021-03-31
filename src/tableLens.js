@@ -5,11 +5,12 @@ import {getMeshPos,initGridMesh,restoreGridMesh} from "./mesh.js";
 import {GridLineObject} from "./gridLines.js";
 import {createBackgroundTexture} from "./texture.js";
 import {initSingleLinechart,updateSingleLinechart,destroyLinecharts,hideLinecharts} from "./linechart.js";
-import {highlightManager} from "./highlight.js";
-import {mouseTracker} from "./tracking.js";
-// for table lens
-let focalScale = 4;
+// parameters
+// Magnification scale for the focused cells.
+let focalScale = 2;
+// The range of cells that are showing line charts. (There are (2*${contextRadius}+1)^2 line charts in total.)
 let contextRadius=1;
+
 let quad;
 let gridLineObj;
 let style_flag;
@@ -140,12 +141,11 @@ function updateQuad(h,w) {
     currentPos = {...focusPos};
     buffer.update();
     updateGridLine();
-    highlightManager.updateAll();
 };
 function restoreQuad() {
+    focusPos.h = -1; focusPos.w = -1;
     restoreGridMesh(quad,PARA.table,PARA.step_pix);
     updateGridLine();
-    highlightManager.updateAll();
     hideLinecharts();
     if(style_flag==="STEP") {setMasksVisibility(false);}
 };
@@ -298,6 +298,8 @@ function initLinecharts() {
     }
 }
 function updateLinecharts(h,w) {
+    w = Math.max(contextRadius,Math.min(PARA.table.w-contextRadius-1,w));
+    h = Math.max(contextRadius,Math.min(PARA.table.h-contextRadius-1,h));
     const buffer = quad.geometry.getBuffer('aVertexPosition');
     let grid_pix = {
         'h':buffer.data[2*bufferIndex(h+1,w)+1]-buffer.data[2*bufferIndex(h,w)+1],
@@ -360,8 +362,14 @@ function bodyListener(evt) {
     }
     //let w = Math.floor(mouseOnCanvas.w/PARA.step_pix.w);
     //let h = Math.floor(mouseOnCanvas.h/PARA.step_pix.h);
-    let w = binSearch(mouseOnCanvas.w,'w',0,PARA.table.w);
-    let h= binSearch(mouseOnCanvas.h,'h',0,PARA.table.h);
+    let h,w;
+    if (focusPos.h<0 || focusPos.w<0) {
+        h = Math.floor(mouseOnCanvas.h/PARA.step_pix.h);
+        w = Math.floor(mouseOnCanvas.w/PARA.step_pix.w);
+    } else {
+        w = binSearch(mouseOnCanvas.w,'w',0,PARA.table.w);
+        h= binSearch(mouseOnCanvas.h,'h',0,PARA.table.h);
+    }
     w = Math.max(contextRadius,Math.min(PARA.table.w-contextRadius-1,w));
     h = Math.max(contextRadius,Math.min(PARA.table.h-contextRadius-1,h));
     updateQuad(h,w);
@@ -370,11 +378,25 @@ function bodyListener(evt) {
         updateMaskSprite();
     }
 }
+function setup(config) {
+    focalScale = config.tablelensScale;
+    contextRadius = Math.floor(config.contextLength/2);
+}
 function init(s) {
     style_flag = s;
+
+    if (nodeCnt == "50") {
+        focalScale = 4;
+        contextRadius = 1;
+    } else {
+        focalScale = 8;
+        contextRadius = 1;
+    }
+
+
     //focalScale = scale_para.defaultValue;
     //contextRadius = Math.floor(contextLength_para.defaultValue/2);
-    
+
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
     quad = initGridMesh(PARA.table.h,PARA.table.w,backgroundTexture); 
 
@@ -383,7 +405,8 @@ function init(s) {
     let canvas = document.createElement("canvas");
     canvas.id = "canvas";
     canvas.style.position = "absolute";
-    document.body.appendChild(canvas);
+    //document.body.appendChild(canvas);
+    d3.select("#canvasVis").node().appendChild(canvas);
     app = new PIXI.Application({width:PARA.stage_pix.w, height:PARA.stage_pix.h, antialias:true, view:canvas});
     app.renderer.backgroundColor = PARA.backgroundColor;
     app.stage.interactive = true;
@@ -431,34 +454,27 @@ function init(s) {
     };
     sliderInfo.push(time_para);
     initSliders(sliderInfo);
-    
 
-    highlightManager.registerGetPosHandle(getVerticePositionsByGrid);
-    highlightManager.loadTo(container);
-
-    //mouseTracker.start();
-    //// for debug
-    //setTimeout(function() {
-    //    mouseTracker.pause();
-    //},PARA.DEBUG_recordingTimeout*1000);
 }
-export function loadTableLens_stretch() {
-    init("STRETCH"); 
+export function loadTableLens_stretch(config) {
+    init("STRETCH",config); 
 }
-export function loadTableLens_step() {
-    init("STEP"); 
+export function loadTableLens_step(config) {
+    init("STEP",config); 
 }
 export function destroyTableLens_stretch() {
+    if (typeof app ==='undefined') return;
     document.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
     destroyLinecharts();
-    highlightManager.unregisterGetPosHandle();
+    currentTime.setHandle = function(val){};
 }
 export function destroyTableLens_step() {
+    if (typeof app ==='undefined') return;
     document.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
     destroyLinecharts();
-    highlightManager.unregisterGetPosHandle();
+    currentTime.setHandle = function(val){};
 }

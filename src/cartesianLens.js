@@ -5,13 +5,12 @@ import {getMeshPos,initGridMesh,restoreGridMesh} from "./mesh.js";
 import {createBackgroundTexture} from "./texture.js";
 import {GridLineObject} from "./gridLines.js";
 import {initSingleLinechart,updateSingleLinechart,destroyLinecharts,hideLinecharts} from "./linechart.js";
-import {highlightManager} from "./highlight.js";
-import {mouseTracker,mouseTracker_mousemoveHandle} from "./tracking.js";
-
+// parameters
+// The range of cells that are showing line charts. (There are (2*${contextRadius}+1)^2 line charts in total.)
 let contextRadius = 1;
-let d=5;
-//let focusPos = {'h':-1,'w':-1};
-//let currentPos = {'h':-1,'w':-1};
+// Degree of magnification. 
+let d=2;
+
 let quad;
 let gridLineObj;
 let app;
@@ -52,7 +51,7 @@ function updateQuad(h,w) {
     currentPos.w=w;
     focusPos.h = h>PARA.table.h/2?h+1:h;
     focusPos.w = w>PARA.table.w/2?w+1:w;
-    
+
     const buffer = quad.geometry.getBuffer('aVertexPosition');
     for(let i=0;i<=PARA.table.h;i++) {
         for(let j=0;j<=PARA.table.w;j++) {
@@ -62,12 +61,11 @@ function updateQuad(h,w) {
     }
     buffer.update();
     updateGridLine();
-    highlightManager.updateAll();
 };
 function restoreQuad() {
+    focusPos.h = -1; focusPos.w = -1;
     restoreGridMesh(quad,PARA.table,PARA.step_pix);
     updateGridLine();
-    highlightManager.updateAll();
     hideLinecharts();
 };
 function updateGridLine() {
@@ -145,6 +143,9 @@ function d_sliderHandle() {
 function changeCurrentTimeHandle() {
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
     quad.shader.uniforms.uSampler2 = backgroundTexture; 
+    if (Object.keys(currentPos).length==0) {
+        return;
+    }
     updateLinecharts(currentPos.h,currentPos.w);
 }
 function bodyListener(evt) {
@@ -161,25 +162,38 @@ function bodyListener(evt) {
         w = binSearch(mouseOnCanvas.w,'w',0,PARA.table.w);
         h = binSearch(mouseOnCanvas.h,'h',0,PARA.table.h);
     }
-    
+    //if(w<0||h<0||w>=PARA.table.w+1||h>=PARA.table.h+1) {return;}
+    //currentPos.h=h;
+    //currentPos.w=w;
+    //if(freeze) return;
+    //focusPos.h = h>PARA.table.h/2?h+1:h;
+    //focusPos.w = w>PARA.table.w/2?w+1:w;
     updateQuad(h,w);
     updateLinecharts(h,w);
 }
+
 export function loadCartesianLens() {
+    
+    if (nodeCnt == "50") {
+        d = 3.5;
+    } else {
+        d = 7.5;
+    }
+    
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
     quad = initGridMesh(PARA.table.h,PARA.table.w,backgroundTexture); 
     
     const container = new PIXI.Container();
     container.interactive = true;
-    let canvas = document.createElement("canvas");
+    container.addChild(quad);
+    const canvas = document.createElement("canvas");
     canvas.id = "canvas";
     canvas.style.position = "absolute";
-    document.body.appendChild(canvas);
+    d3.select('#canvasVis').node().appendChild(canvas);
     app = new PIXI.Application({width:PARA.stage_pix.w, height:PARA.stage_pix.h, antialias:true, view:canvas});
     app.renderer.backgroundColor = PARA.backgroundColor;
     app.stage.interactive = true;
     app.stage.addChild(container);
-    container.addChild(quad);
 
     gridLineObj = new GridLineObject(PARA.table.h,PARA.table.w);
     updateGridLine(); 
@@ -209,20 +223,12 @@ export function loadCartesianLens() {
     sliderInfo.push(time_para);
     initSliders(sliderInfo);
 
-    highlightManager.registerGetPosHandle(getVerticePositionsByGrid);
-    highlightManager.loadTo(container);
-
-    //mouseTracker.start();
-    // for debug
-    //setTimeout(function() {
-    //    mouseTracker.pause();
-    //},PARA.DEBUG_recordingTimeout*1000);
 }
 export function destroyCartesianLens() {
-    //mouseTracker.pause();
+    if ( typeof app==="undefined") return;
     document.removeEventListener("mousemove",bodyListener);
     app.destroy(true,true);
     clearSliders();
     destroyLinecharts();
-    highlightManager.unregisterGetPosHandle();
+    currentTime.setHandle = function(val){};
 }
