@@ -173,7 +173,7 @@ function getVerticePositionsByGrid(pos1,pos2) {
 }
 export function loadOD() {
 
-    document.body.style.overflowX = "scroll";
+    // document.body.style.overflowX = "scroll";
     select_range =[{'h':0,'w':Math.floor(PARA.table.w/2)-select_radius},{'h':2,'w':Math.floor(PARA.table.w/2)+select_radius}];
     
     container = new PIXI.Container();
