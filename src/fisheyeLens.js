@@ -5,8 +5,6 @@ import {createBackgroundTexture} from "./texture.js";
 import {getMeshPos,initGridMesh,initMesh,restoreGridMesh} from "./mesh.js";
 import {GridLineObject} from "./gridLines.js";
 import {initSingleLinechart,updateSingleLinechart,destroyLinecharts,hideLinecharts} from "./linechart.js";
-import {highlightManager} from "./highlight.js";
-import {mouseTracker} from "./tracking.js";
 // parameters
 
 // The range of cells that are showing line charts. (There are (2*${contextRadius}+1)^2 line charts in total.)
@@ -89,11 +87,6 @@ function getPolarPosition(h,w,f) {
     }
     const dir = beta_buf['horizontal']>beta_buf['vertical']?'horizontal':'vertical';
     let beta = Math.max(beta_buf['horizontal'],beta_buf['vertical']);
-    //let scale = h1(beta);
-    //let pos = {
-    //    'h':h*PARA.step_pix.h+ scale*(h*PARA.step_pix.h-f_pix['h']),
-    //    'w':w*PARA.step_pix.w+ scale*(w*PARA.step_pix.w-f_pix['w'])
-    //};
     let scale = h2(beta);
     let pos_pix;
     if(beta==0) {
@@ -274,13 +267,25 @@ function updateQuad_inside(h,w) {
             buffer.data[2*bufferIndex(i,j)+1] =pos_pix.h;
             buffer.data[2*bufferIndex(i,j)] =pos_pix.w;
         }
-        //console.log(row);
     }
     buffer.update();
     //alignFocusGrid(f);
     const bound = getPlateBound(f);
     alignGrids(bound);
-    //correctFlip();
+    correctFlip();
+    alignGrids(bound);
+    correctFlip();
+    alignGrids(bound);
+    correctFlip();
+    alignGrids(bound);
+    correctFlip();
+    alignGrids(bound);
+    correctFlip();
+    alignGrids(bound);
+    correctFlip();
+    alignGrids(bound);
+
+
     //highlightManager.updateAll();
     updateLensGridLine();
 };
@@ -401,7 +406,6 @@ function updateQuad_outside(h,w) {
     const bgTexture = createBackgroundTexture(lensOrigin.h,lensOrigin.w,lensOrigin.h+distort.h-1,lensOrigin.w+distort.w-1);
     quad.shader.uniforms.uSampler2 = bgTexture;
     lensContainer.position.set(lensOrigin.w * PARA.step_pix.w,lensOrigin.h * PARA.step_pix.h);
-    //highlightManager.updateAll();
 }
 function initLinecharts() {
     //initSingleLinechart(0,0);
@@ -558,6 +562,7 @@ function changeCurrentTimeHandle() {
 function bodyListener(evt) {
     const mouseOnCanvas = UTILS.getMouseOnCanvas(evt);
     if(mouseOnCanvas.w<0||mouseOnCanvas.h<0||mouseOnCanvas.w>PARA.stage_pix.w+2*container.x||mouseOnCanvas.h>PARA.stage_pix.h+2*container.y){
+        focusPos.h=-1;focusPos.w=-1;
         quad.visible = false;
         lensGridLineObj.setVisibility(false);
         hideLinecharts();
@@ -671,14 +676,6 @@ function init(s) {
     sliderInfo.push(time_para);
     initSliders(sliderInfo);
 
-    //highlightManager.registerGetPosHandle(getVerticePositionsByGrid);
-    //highlightManager.loadTo(container);
-
-    //mouseTracker.start();
-    //// for debug
-    //setTimeout(function() {
-    //    mouseTracker.pause();
-    //},PARA.DEBUG_recordingTimeout*1000);
 }
 export function loadFisheyeLens_inside() {
     init("INSIDE");
@@ -694,7 +691,6 @@ export function destroyFisheyeLens_inside() {
     clearSliders();
     destroyLinecharts();
     currentTime.setHandle = function(val){};
-    //highlightManager.unregisterGetPosHandle();
 }
 export function destroyFisheyeLens_outside() {
     if (typeof app === 'undefined') return;   
@@ -704,5 +700,4 @@ export function destroyFisheyeLens_outside() {
     clearSliders();
     destroyLinecharts();
     currentTime.setHandle = function(val){};
-    //highlightManager.unregisterGetPosHandle();
 }
