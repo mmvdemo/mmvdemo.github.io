@@ -7,6 +7,7 @@ import * as PARA from "./parameters.js";
 //    currentTime.setCurrent = Number(slider.value);
 //}
 export function time_sliderHandle(value) {
+    console.log("time_sliderHandle",value);
     let text = document.getElementById("currentTime-text");
     text.innerHTML = `${value}`;
     currentTime.setCurrent = Number(value);
@@ -14,33 +15,34 @@ export function time_sliderHandle(value) {
 export function initSliders(info) {
     let sliderContainer = document.getElementById("sliderContainer");
     for(let i=0;i<info.length;i++) {
-        sliderContainer.innerHTML += `<p>${info[i].id}=<span id=${info[i].id}-text></span></p>`;
+        console.log(info[i]);
+        sliderContainer.innerHTML += `<p>${info[i].displayName}=<span id=${info[i].id}-text></span></p>`;
         let output = document.getElementById(`${info[i].id}-text`);
         output.innerHTML = info[i].defaultValue.toString();
         let slider = document.createElement("div");
         slider.setAttribute("class","slider-div");
-        //slider.type = "range";
-        //slider.value = info[i].defaultValue.toString();
-        //slider.max = info[i].max.toString();
-        //slider.min = info[i].min.toString();
+        slider.setAttribute("id",info[i].id);
+        slider.style.width = `${PARA.slider_length}px`;
+        slider.style.height = `20px`;
+        sliderContainer.append(slider);
+    }
+        
+    for(let i=0;i<info.length;i++) {
+        let slider = document.getElementById(info[i].id);
         noUiSlider.create(slider,{
             start: [Number(info[i].defaultValue)],
-            step:1,
+            step:0.5,
             connect: 'lower',
             range: {
                 'min': [Number(info[i].min)],
                 'max': [Number(info[i].max)]
             }
         });
-        slider.style.width = `${PARA.slider_length}px`;
-        slider.style.height = `20px`;
 
-        slider.setAttribute("id",info[i].id);
         slider.noUiSlider.on('update',function(values,handle){
+            console.log("slider update ",values, handle);
             info[i].oninputHandle(values[handle]);
         });
-            
-        sliderContainer.append(slider);
     }
 };
 export function clearSliders() {

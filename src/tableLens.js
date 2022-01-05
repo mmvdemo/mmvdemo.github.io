@@ -321,19 +321,19 @@ function updateLinecharts(h,w) {
         }
     }
 }
-function scale_sliderHandle() {
+function scale_sliderHandle(value) {
     let text = document.getElementById("tablelensScale-text");
-    let slider = document.getElementById("tablelensScale");
-    text.innerHTML = slider.value;
+    text.innerHTML = value;
     
-    focalScale = Number(slider.value);
-    updateQuad(focusPos.h,focusPos.w);
-    destroyLinecharts();
-    initLinecharts();
-    updateLinecharts(focusPos.h,focusPos.w);
-    if(style_flag=="STEP") {
-        updateMaskSprite();
-    }
+    focalScale = Number(value);
+
+    //updateQuad(focusPos.h,focusPos.w);
+    //destroyLinecharts();
+    //initLinecharts();
+    //updateLinecharts(focusPos.h,focusPos.w);
+    //if(style_flag=="STEP") {
+    //    updateMaskSprite();
+    //}
 }
 function contextLength_sliderHandle() {
     let text = document.getElementById("contextLength-text");
@@ -429,14 +429,26 @@ function init(s) {
     document.addEventListener('mousemove',bodyListener);
     
     let sliderInfo = [];
-    //let scale_para = {
-    //    "defaultValue":focalScale,
-    //    "max":20,
-    //    "min":1,
-    //    "id":"tablelensScale",
-    //    "oninputHandle":scale_sliderHandle
-    //};
-    //sliderInfo.push(scale_para);
+    
+    let time_para = {
+        "defaultValue":currentTime.getCurrent,
+        "max":timeEnd,
+        "min":timeStart,
+        "id":"currentTime",
+        "displayName":"Current Time",
+        "oninputHandle":time_sliderHandle
+    };
+    sliderInfo.push(time_para);
+
+    let scale_para = {
+        "defaultValue":focalScale,
+        "max":20,
+        "min":1,
+        "id":"tablelensScale",
+        "displayName":"Enlarge Scale",
+        "oninputHandle":scale_sliderHandle
+    };
+    sliderInfo.push(scale_para);
     //let contextLength_para = {
     //    "defaultValue":contextRadius*2+1,
     //    "max":5,
@@ -445,14 +457,8 @@ function init(s) {
     //    "oninputHandle":contextLength_sliderHandle
     //};
     //sliderInfo.push(contextLength_para);
-    let time_para = {
-        "defaultValue":currentTime.getCurrent,
-        "max":timeEnd,
-        "min":timeStart,
-        "id":"currentTime",
-        "oninputHandle":time_sliderHandle
-    };
-    sliderInfo.push(time_para);
+
+
     initSliders(sliderInfo);
 
 }

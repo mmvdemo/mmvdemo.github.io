@@ -529,21 +529,21 @@ function distort_sliderHandle() {
     initLinecharts();
     updateLinecharts(focusPos.h,focusPos.w);
 };
-function d_sliderHandle() {
+function d_sliderHandle(value) {
     let text = document.getElementById("d-text");
-    let slider = document.getElementById("d");
-    text.innerHTML = slider.value;
-    d = Number(slider.value);
-    const geometry = createFisheyeGeometry();
-    quad.geometry = geometry;
-    if(style_flag==="INSIDE") {
-        updateQuad_inside(focusPos.h,focusPos.w);
-    } else if(style_flag==="OUTSIDE") {
-        updateQuad_outside(focusPos.h,focusPos.w);
-    }
-    destroyLinecharts();
-    initLinecharts();
-    updateLinecharts(focusPos.h,focusPos.w);
+    text.innerHTML = value;
+    d = Number(value);
+
+    //const geometry = createFisheyeGeometry();
+    //quad.geometry = geometry;
+    //if(style_flag==="INSIDE") {
+    //    updateQuad_inside(focusPos.h,focusPos.w);
+    //} else if(style_flag==="OUTSIDE") {
+    //    updateQuad_outside(focusPos.h,focusPos.w);
+    //}
+    //destroyLinecharts();
+    //initLinecharts();
+    //updateLinecharts(focusPos.h,focusPos.w);
 };
 function changeCurrentTimeHandle() {
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
@@ -658,22 +658,26 @@ function init(s) {
     //    "oninputHandle":distort_sliderHandle
     //};
     //sliderInfo.push(distort_para);
-    //let d_para = {
-    //    "defaultValue":d,
-    //    "max":16,
-    //    "min":1,
-    //    "id":"d",
-    //    "oninputHandle":d_sliderHandle
-    //};
-    //sliderInfo.push(d_para);
+    
     let time_para = {
         "defaultValue":currentTime.getCurrent,
         "max":timeEnd,
         "min":timeStart,
         "id":"currentTime",
+        "displayName":"Current Time",
         "oninputHandle":time_sliderHandle
     };
     sliderInfo.push(time_para);
+    let d_para = {
+        "defaultValue":d,
+        "max":16,
+        "min":1,
+        "id":"d",
+        "displayName":"Parameter d",
+        "oninputHandle":d_sliderHandle
+    };
+    sliderInfo.push(d_para);
+    
     initSliders(sliderInfo);
 
 }

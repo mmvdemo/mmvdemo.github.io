@@ -9,7 +9,7 @@ import {initSingleLinechart,updateSingleLinechart,destroyLinecharts,hideLinechar
 // The range of cells that are showing line charts. (There are (2*${contextRadius}+1)^2 line charts in total.)
 let contextRadius = 1;
 // Degree of magnification. 
-let d=2;
+let d=3.5;
 
 let quad;
 let gridLineObj;
@@ -128,16 +128,18 @@ function updateLinecharts(h,w) {
         }
     }
 }
-function d_sliderHandle() {
+function d_sliderHandle(value) {
     let text = document.getElementById("d-text");
-    let slider = document.getElementById("d");
-    text.innerHTML = slider.value;
+    text.innerHTML = `${value}`;
+    d = Number(value);
+    if (Object.keys(currentPos).length==0 ){
+        return;
+    }
 
-    d = Number(slider.value);
-    updateQuad(currentPos.h,currentPos.w);
-    destroyLinecharts();
-    initLinecharts();
-    updateLinecharts(currentPos.h,currentPos.w);
+    //updateQuad(currentPos.h,currentPos.w);
+    //destroyLinecharts();
+    //initLinecharts();
+    //updateLinecharts(currentPos.h,currentPos.w);
 };
 
 function changeCurrentTimeHandle() {
@@ -169,6 +171,7 @@ function bodyListener(evt) {
     //focusPos.h = h>PARA.table.h/2?h+1:h;
     //focusPos.w = w>PARA.table.w/2?w+1:w;
     updateQuad(h,w);
+    //console.log("bodyListener",currentPos.h,currentPos.w)
     updateLinecharts(h,w);
 }
 
@@ -205,22 +208,25 @@ export function loadCartesianLens() {
     document.addEventListener('mousemove',bodyListener);
     
     let sliderInfo = [];
-    //let d_para = {
-    //    "defaultValue":d,
-    //    "max":20,
-    //    "min":1,
-    //    "id":"d",
-    //    "oninputHandle":d_sliderHandle
-    //};
-    //sliderInfo.push(d_para);
+    
     let time_para = {
         "defaultValue":currentTime.value,
         "max":timeEnd,
         "min":timeStart,
         "id":"currentTime",
+        "displayName": "Current Time",
         "oninputHandle":time_sliderHandle
     };
     sliderInfo.push(time_para);
+    let d_para = {
+        "defaultValue":d,
+        "max":10,
+        "min":1,
+        "id":"d",
+        "displayName":"Parameter d",
+        "oninputHandle":d_sliderHandle
+    };
+    sliderInfo.push(d_para);
     initSliders(sliderInfo);
 
 }
