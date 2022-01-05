@@ -335,12 +335,11 @@ function scale_sliderHandle(value) {
     //    updateMaskSprite();
     //}
 }
-function contextLength_sliderHandle() {
+function contextLength_sliderHandle(value) {
     let text = document.getElementById("contextLength-text");
-    let slider = document.getElementById("contextLength");
-    text.innerHTML = slider.value;
+    text.innerHTML = value;
 
-    contextRadius = Math.floor(Number(slider.value)/2);
+    contextRadius = Math.floor(Number(value)/2);
     updateQuad(focusPos.h,focusPos.w);
     destroyLinecharts();
     initLinecharts();
@@ -436,27 +435,31 @@ function init(s) {
         "min":timeStart,
         "id":"currentTime",
         "displayName":"Current Time",
+        "step":1,
         "oninputHandle":time_sliderHandle
     };
     sliderInfo.push(time_para);
 
     let scale_para = {
         "defaultValue":focalScale,
-        "max":20,
+        "max":10,
         "min":1,
         "id":"tablelensScale",
         "displayName":"Enlarge Scale",
+        "step":0.5,
         "oninputHandle":scale_sliderHandle
     };
     sliderInfo.push(scale_para);
-    //let contextLength_para = {
-    //    "defaultValue":contextRadius*2+1,
-    //    "max":5,
-    //    "min":1,
-    //    "id":"contextLength",
-    //    "oninputHandle":contextLength_sliderHandle
-    //};
-    //sliderInfo.push(contextLength_para);
+    let contextLength_para = {
+        "defaultValue":contextRadius*2+1,
+        "max":7,
+        "min":1,
+        "id":"contextLength",
+        "displayName":"Context Length",
+        "step":2,
+        "oninputHandle":contextLength_sliderHandle
+    };
+    sliderInfo.push(contextLength_para);
 
 
     initSliders(sliderInfo);

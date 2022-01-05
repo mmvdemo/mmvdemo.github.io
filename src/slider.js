@@ -31,7 +31,7 @@ export function initSliders(info) {
         let slider = document.getElementById(info[i].id);
         noUiSlider.create(slider,{
             start: [Number(info[i].defaultValue)],
-            step:0.5,
+            step:Number(info[i].step),
             connect: 'lower',
             range: {
                 'min': [Number(info[i].min)],

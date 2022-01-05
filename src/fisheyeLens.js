@@ -509,24 +509,34 @@ function updateLinecharts(h,w) {
     }
 }
 
-function distort_sliderHandle() {
+function distort_sliderHandle(value) {
     let text = document.getElementById("distort-text");
-    let slider = document.getElementById("distort");
-    text.innerHTML = slider.value;
-    distort.h = Number(slider.value);
-    distort.w = Number(slider.value);
+    text.innerHTML = value;
+    distort.h = Number(value);
+    distort.w = Number(value);
+    
+
+
     const geometry = createFisheyeGeometry();
     quad.geometry = geometry;
     lensGridLineObj.destroy(lensGridLineContainer);
     lensGridLineObj = new GridLineObject(distort.h,distort.w);
     lensGridLineObj.addTo(lensGridLineContainer);
+    
+    destroyLinecharts();
+    initLinecharts();
+    
+    console.log(focusPos);
+    if (focusPos.h<0 || focusPos.w<0) {
+        return;
+    }
+
     if(style_flag==="INSIDE") {
         updateQuad_inside(focusPos.h,focusPos.w);
     } else if(style_flag==="OUTSIDE") {
         updateQuad_outside(focusPos.h,focusPos.w);
     }
-    destroyLinecharts();
-    initLinecharts();
+    
     updateLinecharts(focusPos.h,focusPos.w);
 };
 function d_sliderHandle(value) {
@@ -650,14 +660,6 @@ function init(s) {
     document.addEventListener('mousemove',bodyListener);
 
     let sliderInfo = [];
-    //let distort_para = {
-    //    "defaultValue":distort.h,
-    //    "max":50,
-    //    "min":1,
-    //    "id":"distort",
-    //    "oninputHandle":distort_sliderHandle
-    //};
-    //sliderInfo.push(distort_para);
     
     let time_para = {
         "defaultValue":currentTime.getCurrent,
@@ -665,15 +667,29 @@ function init(s) {
         "min":timeStart,
         "id":"currentTime",
         "displayName":"Current Time",
+        "step":1,
         "oninputHandle":time_sliderHandle
     };
     sliderInfo.push(time_para);
+
+    let distort_para = {
+        "defaultValue":distort.h,
+        "max":50,
+        "min":1,
+        "id":"distort",
+        "displayName":"Context Length",
+        "step":2,
+        "oninputHandle":distort_sliderHandle
+    };
+    sliderInfo.push(distort_para);
+    
     let d_para = {
         "defaultValue":d,
         "max":16,
         "min":1,
         "id":"d",
         "displayName":"Parameter d",
+        "step":0.5,
         "oninputHandle":d_sliderHandle
     };
     sliderInfo.push(d_para);

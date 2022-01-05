@@ -141,7 +141,18 @@ function d_sliderHandle(value) {
     //initLinecharts();
     //updateLinecharts(currentPos.h,currentPos.w);
 };
+function contextLength_sliderHandle(value) {
+    let text = document.getElementById("contextLength-text");
+    text.innerHTML = value;
 
+    contextRadius = Math.floor(Number(value)/2);
+    
+    //updateQuad(currentPos.h,currentPos.w);
+    destroyLinecharts();
+    initLinecharts();
+    //updateLinecharts(currentPos.h,currentPos.w);
+    
+};
 function changeCurrentTimeHandle() {
     const backgroundTexture = createBackgroundTexture(0,0,PARA.table.h-1,PARA.table.w-1);
     quad.shader.uniforms.uSampler2 = backgroundTexture; 
@@ -215,6 +226,7 @@ export function loadCartesianLens() {
         "min":timeStart,
         "id":"currentTime",
         "displayName": "Current Time",
+        "step":1,
         "oninputHandle":time_sliderHandle
     };
     sliderInfo.push(time_para);
@@ -224,9 +236,21 @@ export function loadCartesianLens() {
         "min":1,
         "id":"d",
         "displayName":"Parameter d",
+        "step":0.5,
         "oninputHandle":d_sliderHandle
     };
     sliderInfo.push(d_para);
+    
+    let contextLength_para = {
+        "defaultValue":contextRadius*2+1,
+        "max":7,
+        "min":1,
+        "id":"contextLength",
+        "displayName":"Context Length",
+        "step":2,
+        "oninputHandle":contextLength_sliderHandle
+    };
+    sliderInfo.push(contextLength_para);
     initSliders(sliderInfo);
 
 }
