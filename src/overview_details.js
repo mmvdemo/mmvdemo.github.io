@@ -248,6 +248,7 @@ export function loadOD() {
         "max":timeEnd,
         "min":timeStart,
         "id":"currentTime",
+        "step":1,
         "oninputHandle":time_sliderHandle
     };
     sliderInfo.push(time_para);

@@ -29,6 +29,8 @@ export function initSliders(info) {
         
     for(let i=0;i<info.length;i++) {
         let slider = document.getElementById(info[i].id);
+        console.log('init slider info step')
+        console.log(info[i].step)
         noUiSlider.create(slider,{
             start: [Number(info[i].defaultValue)],
             step:Number(info[i].step),

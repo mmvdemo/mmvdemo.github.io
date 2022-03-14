@@ -207,6 +207,7 @@ export function loadZoom() {
         "max":timeEnd,
         "min":timeStart,
         "id":"currentTime",
+        "step":1,
         "oninputHandle":time_sliderHandle
     };
     sliderInfo.push(time_para);
